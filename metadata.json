@@ -1,0 +1,5 @@
+{
+  "name": "EcoColis - Gestion de Stocks Alimentaires",
+  "description": "Une application solidaire et pseudonymisée pour la gestion et la réservation de colis alimentaires, avec un système de rôles (gestionnaires/utilisateurs) et des notifications de collecte.",
+  "requestFramePermissions": []
+}

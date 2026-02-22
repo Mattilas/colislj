@@ -38,11 +38,16 @@ const App: React.FC = () => {
           supabase.from('messages').select('*').order('timestamp', { ascending: false })
         ]);
 
+        const savedUserId = localStorage.getItem('ecocolis_user_id');
+        const users = usersRes.data || [];
+        const currentUser = savedUserId ? users.find(u => u.id === savedUserId) || null : null;
+
         setState(prev => ({
           ...prev,
           inventory: invRes.data || [],
-          users: usersRes.data || [],
-          messages: msgRes.data || []
+          users: users,
+          messages: msgRes.data || [],
+          currentUser: currentUser
         }));
       } catch (err) {
         console.error("Erreur de chargement:", err);
@@ -160,10 +165,12 @@ const App: React.FC = () => {
       userProfile = created;
     }
 
+    localStorage.setItem('ecocolis_user_id', userProfile.id);
     setState(prev => ({ ...prev, currentUser: userProfile }));
   }, []);
 
   const handleLogout = () => {
+    localStorage.removeItem('ecocolis_user_id');
     setState(prev => ({ ...prev, currentUser: null }));
     setActiveTab('inventory');
   };

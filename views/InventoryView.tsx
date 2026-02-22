@@ -148,12 +148,39 @@ interface ItemCardProps {
 const ItemCard: React.FC<ItemCardProps> = ({ item, currentUserId, isManager, onReserve, onCancel, onEdit, onDelete }) => {
   const isReserved = item.reservedById !== null;
   const isMine = item.reservedById === currentUserId;
-  const [reserveQty, setReserveQty] = useState(1);
+  const [reserveQtyStr, setReserveQtyStr] = useState('1');
 
   // Reset reserveQty if item.quantity changes and is lower
   React.useEffect(() => {
-    if (reserveQty > item.quantity) setReserveQty(item.quantity);
-  }, [item.quantity, reserveQty]);
+    const qty = parseInt(reserveQtyStr);
+    if (!isNaN(qty) && qty > item.quantity) {
+      setReserveQtyStr(item.quantity.toString());
+    }
+  }, [item.quantity, reserveQtyStr]);
+
+  const handleReserveClick = () => {
+    let qty = parseInt(reserveQtyStr);
+    if (isNaN(qty) || qty < 1) qty = 1;
+    if (qty > item.quantity) qty = item.quantity;
+    onReserve(qty);
+    setReserveQtyStr('1');
+  };
+
+  const handleQtyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    if (val === '') {
+      setReserveQtyStr('');
+      return;
+    }
+    const num = parseInt(val);
+    if (!isNaN(num)) {
+      if (num > item.quantity) {
+        setReserveQtyStr(item.quantity.toString());
+      } else {
+        setReserveQtyStr(num.toString());
+      }
+    }
+  };
 
   return (
     <div className={`relative bg-white p-5 rounded-3xl border transition-all ${isMine ? 'border-emerald-500 ring-4 ring-emerald-50 shadow-lg' : 'border-slate-100 shadow-sm'}`}>
@@ -198,16 +225,19 @@ const ItemCard: React.FC<ItemCardProps> = ({ item, currentUserId, isManager, onR
               type="number" 
               min="1" 
               max={item.quantity} 
-              value={reserveQty}
-              onChange={(e) => setReserveQty(Math.min(item.quantity, Math.max(1, parseInt(e.target.value) || 1)))}
+              value={reserveQtyStr}
+              onChange={handleQtyChange}
+              onBlur={() => {
+                if (reserveQtyStr === '' || parseInt(reserveQtyStr) < 1) {
+                  setReserveQtyStr('1');
+                }
+              }}
               className="w-14 px-2 py-1.5 text-xs border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-center"
             />
             <button 
-              onClick={() => {
-                onReserve(reserveQty);
-                setReserveQty(1);
-              }}
-              className="flex items-center gap-1.5 text-xs font-bold text-emerald-600 bg-white px-3 py-1.5 rounded-lg border border-emerald-100 shadow-sm transition-all hover:bg-emerald-50"
+              onClick={handleReserveClick}
+              disabled={reserveQtyStr === '' || parseInt(reserveQtyStr) < 1}
+              className="flex items-center gap-1.5 text-xs font-bold text-emerald-600 bg-white px-3 py-1.5 rounded-lg border border-emerald-100 shadow-sm transition-all hover:bg-emerald-50 disabled:opacity-50"
             >
               <CheckCircle size={14} /> Réserver
             </button>

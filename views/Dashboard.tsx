@@ -4,14 +4,15 @@ import { AppState, InventoryItem, Message, Role } from '../types';
 import InventoryView from './InventoryView';
 import AdminView from './AdminView';
 import MessageView from './MessageView';
+import ReservationsView from './ReservationsView';
 
 interface DashboardProps {
-  activeTab: 'inventory' | 'admin' | 'messages';
+  activeTab: 'inventory' | 'admin' | 'messages' | 'reservations';
   state: AppState;
   isManager: boolean;
-  onReserve: (id: string) => void;
+  onReserve: (id: string, quantity: number) => void;
   onCancel: (id: string) => void;
-  onUpdateItem: (item: InventoryItem) => void;
+  onUpdateItem: (item: Omit<InventoryItem, 'id'> & { id?: string }) => void;
   onDeleteItem: (id: string) => void;
   onSetRole: (userId: string, role: Role) => void;
   onSendMessage: (msg: Omit<Message, 'id' | 'timestamp' | 'isRead'>) => void;
@@ -34,6 +35,14 @@ const Dashboard: React.FC<DashboardProps> = ({
           onDeleteItem={onDeleteItem}
         />
       );
+    case 'reservations':
+      return (
+        <ReservationsView 
+          inventory={state.inventory}
+          users={state.users}
+          currentUserId={state.currentUser?.id || ''}
+        />
+      );
     case 'admin':
       return isManager ? (
         <AdminView 
@@ -47,8 +56,10 @@ const Dashboard: React.FC<DashboardProps> = ({
     case 'messages':
       return (
         <MessageView 
-          messages={state.messages.filter(m => m.toUserId === state.currentUser?.id || m.fromUserId === state.currentUser?.id)} 
+          messages={state.messages} 
+          users={state.users}
           currentUserId={state.currentUser?.id || ''}
+          onSendMessage={onSendMessage}
         />
       );
     default:

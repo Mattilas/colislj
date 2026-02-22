@@ -7,9 +7,9 @@ interface InventoryViewProps {
   inventory: InventoryItem[];
   currentUserId: string;
   isManager: boolean;
-  onReserve: (id: string) => void;
+  onReserve: (id: string, quantity: number) => void;
   onCancel: (id: string) => void;
-  onUpdateItem: (item: InventoryItem) => void;
+  onUpdateItem: (item: Omit<InventoryItem, 'id'> & { id?: string }) => void;
   onDeleteItem: (id: string) => void;
 }
 
@@ -22,14 +22,18 @@ const InventoryView: React.FC<InventoryViewProps> = ({
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
-    const item: InventoryItem = {
-      id: editingItem?.id || Math.random().toString(36).substr(2, 9),
+    const item: Omit<InventoryItem, 'id'> & { id?: string } = {
       name: formData.get('name') as string,
       category: formData.get('category') as string,
       description: formData.get('description') as string,
       quantity: Number(formData.get('quantity')),
       reservedById: editingItem?.reservedById || null,
     };
+    
+    if (editingItem?.id) {
+      item.id = editingItem.id;
+    }
+    
     onUpdateItem(item);
     setShowForm(false);
     setEditingItem(null);
@@ -120,7 +124,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
             item={item} 
             currentUserId={currentUserId}
             isManager={isManager}
-            onReserve={() => onReserve(item.id)}
+            onReserve={(qty) => onReserve(item.id, qty)}
             onCancel={() => onCancel(item.id)}
             onEdit={() => { setEditingItem(item); setShowForm(true); }}
             onDelete={() => onDeleteItem(item.id)}
@@ -135,7 +139,7 @@ interface ItemCardProps {
   item: InventoryItem;
   currentUserId: string;
   isManager: boolean;
-  onReserve: () => void;
+  onReserve: (quantity: number) => void;
   onCancel: () => void;
   onEdit: () => void;
   onDelete: () => void;
@@ -144,6 +148,12 @@ interface ItemCardProps {
 const ItemCard: React.FC<ItemCardProps> = ({ item, currentUserId, isManager, onReserve, onCancel, onEdit, onDelete }) => {
   const isReserved = item.reservedById !== null;
   const isMine = item.reservedById === currentUserId;
+  const [reserveQty, setReserveQty] = useState(1);
+
+  // Reset reserveQty if item.quantity changes and is lower
+  React.useEffect(() => {
+    if (reserveQty > item.quantity) setReserveQty(item.quantity);
+  }, [item.quantity, reserveQty]);
 
   return (
     <div className={`relative bg-white p-5 rounded-3xl border transition-all ${isMine ? 'border-emerald-500 ring-4 ring-emerald-50 shadow-lg' : 'border-slate-100 shadow-sm'}`}>
@@ -154,8 +164,8 @@ const ItemCard: React.FC<ItemCardProps> = ({ item, currentUserId, isManager, onR
         <div className="flex gap-1">
           {isManager && (
             <>
-              <button onClick={onEdit} className="p-2 text-slate-400 hover:text-emerald-600 transition-colors"><Edit3 size={16} /></button>
-              <button onClick={onDelete} className="p-2 text-slate-400 hover:text-red-600 transition-colors"><Trash2 size={16} /></button>
+              <button onClick={onEdit} title="Modifier" className="p-2 text-slate-400 hover:text-emerald-600 transition-colors"><Edit3 size={16} /></button>
+              <button onClick={onDelete} title="Supprimer" className="p-2 text-slate-400 hover:text-red-600 transition-colors"><Trash2 size={16} /></button>
             </>
           )}
         </div>
@@ -164,29 +174,44 @@ const ItemCard: React.FC<ItemCardProps> = ({ item, currentUserId, isManager, onR
       <h3 className="font-bold text-slate-800 text-lg">{item.name}</h3>
       <p className="text-slate-500 text-sm mb-4 line-clamp-2">{item.description}</p>
       
-      <div className="flex items-center justify-between mt-auto">
-        <span className="text-xs font-medium text-slate-400">Restant: {item.quantity}</span>
+      <div className="flex items-center justify-between mt-auto pt-4">
+        <span className="text-xs font-medium text-slate-400">
+          {isReserved ? `Quantité: ${item.quantity}` : `Restant: ${item.quantity}`}
+        </span>
         
         {isReserved ? (
           isMine ? (
             <button 
               onClick={onCancel}
-              className="flex items-center gap-1.5 text-xs font-bold text-red-500 bg-red-50 px-4 py-2 rounded-xl border border-red-100 transition-all hover:bg-red-100"
+              className="flex items-center gap-1.5 text-xs font-bold text-emerald-700 bg-emerald-50 px-4 py-2 rounded-xl border border-emerald-100 transition-all hover:bg-emerald-100"
             >
-              <XCircle size={14} /> Annuler
+              <CheckCircle size={14} /> Annuler
             </button>
           ) : (
             <span className="flex items-center gap-1.5 text-xs font-bold text-slate-400 bg-slate-50 px-4 py-2 rounded-xl border border-slate-100">
-              Indisponible
+              <XCircle size={14} /> indisponible
             </span>
           )
         ) : (
-          <button 
-            onClick={onReserve}
-            className="flex items-center gap-1.5 text-xs font-bold text-emerald-600 bg-white px-4 py-2 rounded-xl border border-emerald-100 shadow-sm transition-all hover:bg-emerald-50"
-          >
-            <CheckCircle size={14} /> Réserver
-          </button>
+          <div className="flex items-center gap-2">
+            <input 
+              type="number" 
+              min="1" 
+              max={item.quantity} 
+              value={reserveQty}
+              onChange={(e) => setReserveQty(Math.min(item.quantity, Math.max(1, parseInt(e.target.value) || 1)))}
+              className="w-14 px-2 py-1.5 text-xs border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-center"
+            />
+            <button 
+              onClick={() => {
+                onReserve(reserveQty);
+                setReserveQty(1);
+              }}
+              className="flex items-center gap-1.5 text-xs font-bold text-emerald-600 bg-white px-3 py-1.5 rounded-lg border border-emerald-100 shadow-sm transition-all hover:bg-emerald-50"
+            >
+              <CheckCircle size={14} /> Réserver
+            </button>
+          </div>
         )}
       </div>
 

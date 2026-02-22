@@ -16,11 +16,12 @@ interface DashboardProps {
   onDeleteItem: (id: string) => void;
   onSetRole: (userId: string, role: Role) => void;
   onSendMessage: (msg: Omit<Message, 'id' | 'timestamp' | 'isRead'>) => void;
+  onMarkMessagesAsRead: (contactId: string) => void;
 }
 
 const Dashboard: React.FC<DashboardProps> = ({ 
   activeTab, state, isManager, onReserve, onCancel, 
-  onUpdateItem, onDeleteItem, onSetRole, onSendMessage 
+  onUpdateItem, onDeleteItem, onSetRole, onSendMessage, onMarkMessagesAsRead 
 }) => {
   switch (activeTab) {
     case 'inventory':
@@ -60,6 +61,7 @@ const Dashboard: React.FC<DashboardProps> = ({
           users={state.users}
           currentUserId={state.currentUser?.id || ''}
           onSendMessage={onSendMessage}
+          onMarkMessagesAsRead={onMarkMessagesAsRead}
         />
       );
     default:

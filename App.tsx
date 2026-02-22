@@ -119,7 +119,14 @@ const App: React.FC = () => {
           
           return { ...prev, messages: [newMsg, ...prev.messages] };
         });
-      }).subscribe();
+      })
+      .on('postgres_changes' as any, { event: 'UPDATE', schema: 'public', table: 'messages' }, (payload: any) => {
+        setState(prev => ({
+          ...prev,
+          messages: prev.messages.map(m => m.id === payload.new.id ? payload.new as Message : m)
+        }));
+      })
+      .subscribe();
 
     const profilesSub = supabase.channel('profiles-db-changes')
       .on('postgres_changes' as any, { event: '*', schema: 'public', table: 'profiles' }, (payload: any) => {
@@ -281,6 +288,33 @@ const App: React.FC = () => {
     await supabase.from('messages').insert(fullMsg);
   };
 
+  const markMessagesAsRead = async (contactId: string) => {
+    if (!state.currentUser) return;
+    
+    const unreadMessages = state.messages.filter(
+      m => m.fromUserId === contactId && m.toUserId === state.currentUser!.id && !m.isRead
+    );
+    
+    if (unreadMessages.length === 0) return;
+
+    // Optimistic update
+    setState(prev => ({
+      ...prev,
+      messages: prev.messages.map(m => 
+        (m.fromUserId === contactId && m.toUserId === prev.currentUser!.id && !m.isRead)
+          ? { ...m, isRead: true }
+          : m
+      )
+    }));
+
+    // Update in DB
+    const { error } = await supabase.from('messages')
+      .update({ isRead: true })
+      .in('id', unreadMessages.map(m => m.id));
+      
+    if (error) console.error("Erreur update messages:", error);
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center gap-4 text-emerald-600">
@@ -345,6 +379,7 @@ const App: React.FC = () => {
           onDeleteItem={deleteItem}
           onSetRole={setRole}
           onSendMessage={sendMessage}
+          onMarkMessagesAsRead={markMessagesAsRead}
         />
       </main>
     </div>

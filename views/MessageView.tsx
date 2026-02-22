@@ -8,9 +8,10 @@ interface MessageViewProps {
   users: User[];
   currentUserId: string;
   onSendMessage: (msg: Omit<Message, 'id' | 'timestamp' | 'isRead'>) => void;
+  onMarkMessagesAsRead: (contactId: string) => void;
 }
 
-const MessageView: React.FC<MessageViewProps> = ({ messages, users, currentUserId, onSendMessage }) => {
+const MessageView: React.FC<MessageViewProps> = ({ messages, users, currentUserId, onSendMessage, onMarkMessagesAsRead }) => {
   const [selectedContactId, setSelectedContactId] = useState<string | null>(null);
   const [inputText, setInputText] = useState('');
 
@@ -43,6 +44,18 @@ const MessageView: React.FC<MessageViewProps> = ({ messages, users, currentUserI
     [contacts, selectedContactId]
   );
 
+  // Marquer les messages comme lus quand on sélectionne un contact
+  React.useEffect(() => {
+    if (selectedContactId) {
+      const hasUnread = messages.some(
+        m => m.fromUserId === selectedContactId && m.toUserId === currentUserId && !m.isRead
+      );
+      if (hasUnread) {
+        onMarkMessagesAsRead(selectedContactId);
+      }
+    }
+  }, [selectedContactId, messages, currentUserId, onMarkMessagesAsRead]);
+
   const handleSend = (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedContactId || !inputText.trim()) return;
@@ -67,6 +80,10 @@ const MessageView: React.FC<MessageViewProps> = ({ messages, users, currentUserI
             .filter(m => (m.fromUserId === contact.id && m.toUserId === currentUserId) || (m.fromUserId === currentUserId && m.toUserId === contact.id))
             .sort((a, b) => b.timestamp - a.timestamp)[0];
 
+          const unreadCount = messages.filter(
+            m => m.fromUserId === contact.id && m.toUserId === currentUserId && !m.isRead
+          ).length;
+
           return (
             <button
               key={contact.id}
@@ -80,7 +97,7 @@ const MessageView: React.FC<MessageViewProps> = ({ messages, users, currentUserI
               }`}>
                 {contact.pseudonym[0]}
               </div>
-              <div className="overflow-hidden">
+              <div className="overflow-hidden flex-1">
                 <div className="flex items-center gap-2">
                   <p className="font-bold truncate text-sm">{contact.pseudonym}</p>
                   {contact.role === 'MANAGER' && (
@@ -97,6 +114,11 @@ const MessageView: React.FC<MessageViewProps> = ({ messages, users, currentUserI
                   </p>
                 )}
               </div>
+              {unreadCount > 0 && (
+                <div className="w-5 h-5 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center shrink-0">
+                  {unreadCount}
+                </div>
+              )}
             </button>
           );
         })

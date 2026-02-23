@@ -46,16 +46,30 @@ const MessageView: React.FC<MessageViewProps> = ({ messages, users, currentUserI
     [contacts, selectedContactId]
   );
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  const scrollToBottom = (instant = false) => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ 
+        behavior: instant ? 'auto' : 'smooth',
+        block: 'end'
+      });
+    }
   };
 
   // Scroll to bottom when messages change or contact is selected
   useEffect(() => {
     if (selectedContactId) {
-      scrollToBottom();
+      // Small delay to ensure DOM is ready and layout is stable
+      const timer = setTimeout(() => scrollToBottom(false), 100);
+      return () => clearTimeout(timer);
     }
-  }, [activeConversationMessages, selectedContactId]);
+  }, [activeConversationMessages.length, selectedContactId]);
+
+  // Instant scroll on first load of a conversation
+  useEffect(() => {
+    if (selectedContactId) {
+      scrollToBottom(true);
+    }
+  }, [selectedContactId]);
 
   // Marquer les messages comme lus quand on sélectionne un contact
   useEffect(() => {
@@ -79,6 +93,26 @@ const MessageView: React.FC<MessageViewProps> = ({ messages, users, currentUserI
       content: inputText.trim(),
     });
     setInputText('');
+  };
+
+  const formatMessageDate = (timestamp: number) => {
+    const date = new Date(timestamp);
+    const today = new Date();
+    const yesterday = new Date();
+    yesterday.setDate(today.getDate() - 1);
+
+    if (date.toDateString() === today.toDateString()) {
+      return "Aujourd'hui";
+    } else if (date.toDateString() === yesterday.toDateString()) {
+      return "Hier";
+    } else {
+      return date.toLocaleDateString('fr-FR', { 
+        weekday: 'long', 
+        day: 'numeric', 
+        month: 'long',
+        year: date.getFullYear() !== today.getFullYear() ? 'numeric' : undefined
+      });
+    }
   };
 
   // Liste des contacts avec indicateur de dernier message
@@ -202,26 +236,39 @@ const MessageView: React.FC<MessageViewProps> = ({ messages, users, currentUserI
                 </div>
               ) : (
                 <>
-                  {activeConversationMessages.map(msg => {
+                  {activeConversationMessages.map((msg, index) => {
                     const isMine = msg.fromUserId === currentUserId;
+                    const prevMsg = activeConversationMessages[index - 1];
+                    const showDateSeparator = !prevMsg || 
+                      new Date(prevMsg.timestamp).toDateString() !== new Date(msg.timestamp).toDateString();
+
                     return (
-                      <div key={msg.id} className={`flex flex-col ${isMine ? 'items-end' : 'items-start'}`}>
-                        <div className={`max-w-[85%] p-3 rounded-2xl text-sm ${
-                          isMine ? 'bg-emerald-600 text-white rounded-tr-none' : 'bg-white border border-slate-100 text-slate-700 rounded-tl-none shadow-sm'
-                        }`}>
-                          {/* Affichage spécial pour les instructions logistiques */}
-                          {(msg.location || msg.pickupTime) && (
-                            <div className={`mb-2 p-2 rounded-xl text-xs space-y-1 ${isMine ? 'bg-white/10' : 'bg-slate-50'}`}>
-                              {msg.location && <p className="flex items-center gap-1"><MapPin size={12}/> {msg.location}</p>}
-                              {msg.pickupTime && <p className="flex items-center gap-1"><Clock size={12}/> {msg.pickupTime}</p>}
-                            </div>
-                          )}
-                          <p className="leading-relaxed whitespace-pre-wrap">{msg.content}</p>
+                      <React.Fragment key={msg.id}>
+                        {showDateSeparator && (
+                          <div className="flex justify-center my-6">
+                            <span className="bg-slate-200/50 text-slate-500 text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full backdrop-blur-sm">
+                              {formatMessageDate(msg.timestamp)}
+                            </span>
+                          </div>
+                        )}
+                        <div className={`flex flex-col ${isMine ? 'items-end' : 'items-start'}`}>
+                          <div className={`max-w-[85%] p-3 rounded-2xl text-sm ${
+                            isMine ? 'bg-emerald-600 text-white rounded-tr-none' : 'bg-white border border-slate-100 text-slate-700 rounded-tl-none shadow-sm'
+                          }`}>
+                            {/* Affichage spécial pour les instructions logistiques */}
+                            {(msg.location || msg.pickupTime) && (
+                              <div className={`mb-2 p-2 rounded-xl text-xs space-y-1 ${isMine ? 'bg-white/10' : 'bg-slate-50'}`}>
+                                {msg.location && <p className="flex items-center gap-1"><MapPin size={12}/> {msg.location}</p>}
+                                {msg.pickupTime && <p className="flex items-center gap-1"><Clock size={12}/> {msg.pickupTime}</p>}
+                              </div>
+                            )}
+                            <p className="leading-relaxed whitespace-pre-wrap">{msg.content}</p>
+                          </div>
+                          <span className="text-[9px] text-slate-400 mt-1 px-1">
+                            {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </span>
                         </div>
-                        <span className="text-[9px] text-slate-400 mt-1 px-1">
-                          {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        </span>
-                      </div>
+                      </React.Fragment>
                     );
                   })}
                   <div ref={messagesEndRef} />

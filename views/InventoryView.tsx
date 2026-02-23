@@ -39,7 +39,35 @@ const InventoryView: React.FC<InventoryViewProps> = ({
     setEditingItem(null);
   };
 
-  const activeInventory = inventory.filter(item => !item.category.endsWith(' [LIVRÉ]'));
+  const activeInventory = inventory
+    .filter(item => !item.category.endsWith(' [LIVRÉ]'))
+    .sort((a, b) => {
+      // Priority groups:
+      // 1. Available (reservedById === null && quantity > 0)
+      // 2. Reserved (reservedById !== null)
+      // 3. Unavailable (reservedById === null && quantity === 0)
+      
+      const getPriority = (item: typeof a) => {
+        // 1. Available for everyone
+        if (item.reservedById === null && item.quantity > 0) return 1;
+        // 2. Reserved by current user
+        if (item.reservedById === currentUserId) return 2;
+        // 3. Reserved by others (shows as "indisponible")
+        if (item.reservedById !== null) return 3;
+        // 4. Truly out of stock
+        return 4;
+      };
+
+      const priorityA = getPriority(a);
+      const priorityB = getPriority(b);
+
+      if (priorityA !== priorityB) {
+        return priorityA - priorityB;
+      }
+
+      // Within same priority, sort alphabetically by name
+      return a.name.localeCompare(b.name);
+    });
 
   return (
     <div className="space-y-6">

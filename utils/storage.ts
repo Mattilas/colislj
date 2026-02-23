@@ -26,7 +26,8 @@ export const loadState = (): AppState => {
       { id: '2', name: 'Pack Riz 5kg', category: 'Sec', description: 'Riz long grain', quantity: 10, reservedById: null },
       { id: '3', name: 'Lait demi-écrémé', category: 'Boisson', description: '6 briques de 1L', quantity: 8, reservedById: null },
     ],
-    messages: []
+    messages: [],
+    onlineUserIds: []
   };
 };
 

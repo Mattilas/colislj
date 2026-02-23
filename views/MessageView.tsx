@@ -7,11 +7,12 @@ interface MessageViewProps {
   messages: Message[];
   users: User[];
   currentUserId: string;
+  onlineUserIds: string[];
   onSendMessage: (msg: Omit<Message, 'id' | 'timestamp' | 'isRead'>) => void;
   onMarkMessagesAsRead: (contactId: string) => void;
 }
 
-const MessageView: React.FC<MessageViewProps> = ({ messages, users, currentUserId, onSendMessage, onMarkMessagesAsRead }) => {
+const MessageView: React.FC<MessageViewProps> = ({ messages, users, currentUserId, onlineUserIds, onSendMessage, onMarkMessagesAsRead }) => {
   const [selectedContactId, setSelectedContactId] = useState<string | null>(null);
   const [inputText, setInputText] = useState('');
 
@@ -84,18 +85,25 @@ const MessageView: React.FC<MessageViewProps> = ({ messages, users, currentUserI
             m => m.fromUserId === contact.id && m.toUserId === currentUserId && !m.isRead
           ).length;
 
+          const isOnline = onlineUserIds.includes(contact.id);
+
           return (
             <button
               key={contact.id}
               onClick={() => setSelectedContactId(contact.id)}
-              className={`flex items-center gap-3 p-3 rounded-2xl transition-all text-left ${
+              className={`flex items-center gap-3 p-3 rounded-2xl transition-all text-left relative ${
                 selectedContactId === contact.id ? 'bg-emerald-600 text-white shadow-md' : 'bg-white hover:bg-slate-100 border border-slate-100'
               }`}
             >
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold shrink-0 ${
-                selectedContactId === contact.id ? 'bg-white/20' : 'bg-emerald-100 text-emerald-600'
-              }`}>
-                {contact.pseudonym[0]}
+              <div className="relative shrink-0">
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${
+                  selectedContactId === contact.id ? 'bg-white/20' : 'bg-emerald-100 text-emerald-600'
+                }`}>
+                  {contact.pseudonym[0]}
+                </div>
+                {isOnline && (
+                  <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-emerald-500 border-2 border-white rounded-full"></div>
+                )}
               </div>
               <div className="overflow-hidden flex-1">
                 <div className="flex items-center gap-2">
@@ -164,7 +172,11 @@ const MessageView: React.FC<MessageViewProps> = ({ messages, users, currentUserI
                       </span>
                     )}
                   </div>
-                  <p className="text-[10px] text-emerald-500 font-medium tracking-wide uppercase mt-0.5">En ligne</p>
+                  {onlineUserIds.includes(selectedContact.id) ? (
+                    <p className="text-[10px] text-emerald-500 font-medium tracking-wide uppercase mt-0.5">En ligne</p>
+                  ) : (
+                    <p className="text-[10px] text-slate-400 font-medium tracking-wide uppercase mt-0.5">Hors ligne</p>
+                  )}
                 </div>
               </div>
             </div>

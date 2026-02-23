@@ -13,7 +13,8 @@ const App: React.FC = () => {
     users: [],
     currentUser: null,
     inventory: [],
-    messages: []
+    messages: [],
+    onlineUserIds: []
   });
   const [activeTab, setActiveTab] = useState<'inventory' | 'admin' | 'messages' | 'reservations'>('inventory');
   const [loading, setLoading] = useState(true);
@@ -147,6 +148,43 @@ const App: React.FC = () => {
     };
   }, []);
 
+  // 3. Presence Tracking
+  useEffect(() => {
+    if (!state.currentUser) return;
+
+    const presenceChannel = supabase.channel('online-users', {
+      config: {
+        presence: {
+          key: state.currentUser.id,
+        },
+      },
+    });
+
+    presenceChannel
+      .on('presence', { event: 'sync' }, () => {
+        const newState = presenceChannel.presenceState();
+        const onlineIds = Object.keys(newState);
+        setState(prev => ({ ...prev, onlineUserIds: onlineIds }));
+      })
+      .on('presence', { event: 'join' }, ({ key, newPresences }) => {
+        console.log('join', key, newPresences);
+      })
+      .on('presence', { event: 'leave' }, ({ key, leftPresences }) => {
+        console.log('leave', key, leftPresences);
+      })
+      .subscribe(async (status) => {
+        if (status === 'SUBSCRIBED') {
+          await presenceChannel.track({
+            online_at: new Date().toISOString(),
+          });
+        }
+      });
+
+    return () => {
+      presenceChannel.unsubscribe();
+    };
+  }, [state.currentUser?.id]);
+
   const handleLogin = useCallback(async (googlePayload: { sub: string, name: string, email: string }) => {
     // Vérifier si l'utilisateur existe
     let { data: userProfile, error } = await supabase
@@ -275,6 +313,30 @@ const App: React.FC = () => {
     }
   };
 
+  const handleMarkDelivered = async (itemId: string) => {
+    const item = state.inventory.find(i => i.id === itemId);
+    if (!item) return;
+
+    await supabase.from('inventory')
+      .update({ category: `${item.category} [LIVRÉ]` })
+      .eq('id', itemId);
+  };
+
+  const handleClearDeliveryHistory = async () => {
+    const deliveredItems = state.inventory.filter(i => i.category.endsWith(' [LIVRÉ]'));
+    if (deliveredItems.length === 0) return;
+
+    const ids = deliveredItems.map(i => i.id);
+    const { error } = await supabase.from('inventory').delete().in('id', ids);
+    
+    if (error) {
+      console.error("Erreur lors du nettoyage:", error);
+      toast.error("Erreur lors du nettoyage de l'historique");
+    } else {
+      toast.success("Historique nettoyé avec succès");
+    }
+  };
+
   const setRole = async (userId: string, role: Role) => {
     await supabase.from('profiles').update({ role }).eq('id', userId);
   };
@@ -380,6 +442,8 @@ const App: React.FC = () => {
           onSetRole={setRole}
           onSendMessage={sendMessage}
           onMarkMessagesAsRead={markMessagesAsRead}
+          onMarkDelivered={handleMarkDelivered}
+          onClearDeliveryHistory={handleClearDeliveryHistory}
         />
       </main>
     </div>

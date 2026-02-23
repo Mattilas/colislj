@@ -39,6 +39,8 @@ const InventoryView: React.FC<InventoryViewProps> = ({
     setEditingItem(null);
   };
 
+  const activeInventory = inventory.filter(item => !item.category.endsWith(' [LIVRÉ]'));
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -113,12 +115,12 @@ const InventoryView: React.FC<InventoryViewProps> = ({
       )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {inventory.length === 0 ? (
+        {activeInventory.length === 0 ? (
           <div className="col-span-full py-12 flex flex-col items-center justify-center text-slate-400 opacity-50">
             <PackageOpen size={64} className="mb-4" />
             <p className="text-lg">L'inventaire est vide</p>
           </div>
-        ) : inventory.map(item => (
+        ) : activeInventory.map(item => (
           <ItemCard 
             key={item.id} 
             item={item} 

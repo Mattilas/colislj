@@ -16,6 +16,7 @@ export interface InventoryItem {
   description: string;
   quantity: number;
   reservedById: string | null; // null if available
+  isDelivered?: boolean;
 }
 
 export interface Message {
@@ -34,4 +35,5 @@ export interface AppState {
   currentUser: User | null;
   inventory: InventoryItem[];
   messages: Message[];
+  onlineUserIds: string[];
 }

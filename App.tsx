@@ -16,8 +16,15 @@ const App: React.FC = () => {
     messages: [],
     onlineUserIds: []
   });
-  const [activeTab, setActiveTab] = useState<'inventory' | 'admin' | 'messages' | 'reservations'>('inventory');
+  const [activeTab, setActiveTab] = useState<'inventory' | 'admin' | 'messages' | 'reservations'>(() => {
+    const saved = localStorage.getItem('ecocolis_activeTab');
+    return (saved as 'inventory' | 'admin' | 'messages' | 'reservations') || 'inventory';
+  });
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    localStorage.setItem('ecocolis_activeTab', activeTab);
+  }, [activeTab]);
 
   // Demander la permission pour les notifications natives
   useEffect(() => {

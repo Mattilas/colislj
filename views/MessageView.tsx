@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { Message, User } from '../types';
 import { Send, User as UserIcon, MessageSquare, MapPin, Clock, ChevronLeft } from 'lucide-react';
 
@@ -15,6 +15,7 @@ interface MessageViewProps {
 const MessageView: React.FC<MessageViewProps> = ({ messages, users, currentUserId, onlineUserIds, onSendMessage, onMarkMessagesAsRead }) => {
   const [selectedContactId, setSelectedContactId] = useState<string | null>(null);
   const [inputText, setInputText] = useState('');
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const currentUser = useMemo(() => users.find(u => u.id === currentUserId), [users, currentUserId]);
   const isManager = currentUser?.role === 'MANAGER';
@@ -45,8 +46,19 @@ const MessageView: React.FC<MessageViewProps> = ({ messages, users, currentUserI
     [contacts, selectedContactId]
   );
 
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  // Scroll to bottom when messages change or contact is selected
+  useEffect(() => {
+    if (selectedContactId) {
+      scrollToBottom();
+    }
+  }, [activeConversationMessages, selectedContactId]);
+
   // Marquer les messages comme lus quand on sélectionne un contact
-  React.useEffect(() => {
+  useEffect(() => {
     if (selectedContactId) {
       const hasUnread = messages.some(
         m => m.fromUserId === selectedContactId && m.toUserId === currentUserId && !m.isRead
@@ -189,28 +201,31 @@ const MessageView: React.FC<MessageViewProps> = ({ messages, users, currentUserI
                   <p className="text-sm font-medium">C'est le début de votre conversation.</p>
                 </div>
               ) : (
-                activeConversationMessages.map(msg => {
-                  const isMine = msg.fromUserId === currentUserId;
-                  return (
-                    <div key={msg.id} className={`flex flex-col ${isMine ? 'items-end' : 'items-start'}`}>
-                      <div className={`max-w-[85%] p-3 rounded-2xl text-sm ${
-                        isMine ? 'bg-emerald-600 text-white rounded-tr-none' : 'bg-white border border-slate-100 text-slate-700 rounded-tl-none shadow-sm'
-                      }`}>
-                        {/* Affichage spécial pour les instructions logistiques */}
-                        {(msg.location || msg.pickupTime) && (
-                          <div className={`mb-2 p-2 rounded-xl text-xs space-y-1 ${isMine ? 'bg-white/10' : 'bg-slate-50'}`}>
-                            {msg.location && <p className="flex items-center gap-1"><MapPin size={12}/> {msg.location}</p>}
-                            {msg.pickupTime && <p className="flex items-center gap-1"><Clock size={12}/> {msg.pickupTime}</p>}
-                          </div>
-                        )}
-                        <p className="leading-relaxed whitespace-pre-wrap">{msg.content}</p>
+                <>
+                  {activeConversationMessages.map(msg => {
+                    const isMine = msg.fromUserId === currentUserId;
+                    return (
+                      <div key={msg.id} className={`flex flex-col ${isMine ? 'items-end' : 'items-start'}`}>
+                        <div className={`max-w-[85%] p-3 rounded-2xl text-sm ${
+                          isMine ? 'bg-emerald-600 text-white rounded-tr-none' : 'bg-white border border-slate-100 text-slate-700 rounded-tl-none shadow-sm'
+                        }`}>
+                          {/* Affichage spécial pour les instructions logistiques */}
+                          {(msg.location || msg.pickupTime) && (
+                            <div className={`mb-2 p-2 rounded-xl text-xs space-y-1 ${isMine ? 'bg-white/10' : 'bg-slate-50'}`}>
+                              {msg.location && <p className="flex items-center gap-1"><MapPin size={12}/> {msg.location}</p>}
+                              {msg.pickupTime && <p className="flex items-center gap-1"><Clock size={12}/> {msg.pickupTime}</p>}
+                            </div>
+                          )}
+                          <p className="leading-relaxed whitespace-pre-wrap">{msg.content}</p>
+                        </div>
+                        <span className="text-[9px] text-slate-400 mt-1 px-1">
+                          {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </span>
                       </div>
-                      <span className="text-[9px] text-slate-400 mt-1 px-1">
-                        {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </span>
-                    </div>
-                  );
-                })
+                    );
+                  })}
+                  <div ref={messagesEndRef} />
+                </>
               )}
             </div>
 

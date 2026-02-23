@@ -20,16 +20,11 @@ const MessageView: React.FC<MessageViewProps> = ({ messages, users, currentUserI
   const currentUser = useMemo(() => users.find(u => u.id === currentUserId), [users, currentUserId]);
   const isManager = currentUser?.role === 'MANAGER';
 
-  // Filtrer les utilisateurs selon le rôle et les trier
+  // Trier les utilisateurs selon le rôle
   const contacts = useMemo(() => {
     const others = users.filter(u => u.id !== currentUserId);
     
-    let filteredContacts = others;
-    if (!isManager) {
-      filteredContacts = others.filter(u => u.role === 'MANAGER'); // Les utilisateurs normaux ne voient que les gestionnaires
-    }
-
-    return filteredContacts.sort((a, b) => {
+    return others.sort((a, b) => {
       // 1. First user (Main Manager) comes first
       if (a.isFirstUser && !b.isFirstUser) return -1;
       if (!a.isFirstUser && b.isFirstUser) return 1;
@@ -41,7 +36,7 @@ const MessageView: React.FC<MessageViewProps> = ({ messages, users, currentUserI
       // 3. Alphabetical order within the same group
       return a.pseudonym.localeCompare(b.pseudonym);
     });
-  }, [users, currentUserId, isManager]);
+  }, [users, currentUserId]);
 
   // Messages liés à la conversation sélectionnée
   const activeConversationMessages = useMemo(() => {

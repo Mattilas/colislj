@@ -15,6 +15,7 @@ interface DashboardProps {
   onUpdateItem: (item: Omit<InventoryItem, 'id'> & { id?: string }) => void;
   onDeleteItem: (id: string) => void;
   onSetRole: (userId: string, role: Role) => void;
+  onTransferManagerRole: (userId: string) => void;
   onSendMessage: (msg: Omit<Message, 'id' | 'timestamp' | 'isRead'>) => void;
   onMarkMessagesAsRead: (contactId: string) => void;
   onMarkDelivered: (itemId: string) => void;
@@ -23,7 +24,7 @@ interface DashboardProps {
 
 const Dashboard: React.FC<DashboardProps> = ({ 
   activeTab, state, isManager, onReserve, onCancel, 
-  onUpdateItem, onDeleteItem, onSetRole, onSendMessage, onMarkMessagesAsRead, onMarkDelivered, onClearDeliveryHistory
+  onUpdateItem, onDeleteItem, onSetRole, onTransferManagerRole, onSendMessage, onMarkMessagesAsRead, onMarkDelivered, onClearDeliveryHistory
 }) => {
   switch (activeTab) {
     case 'inventory':
@@ -55,6 +56,7 @@ const Dashboard: React.FC<DashboardProps> = ({
           users={state.users} 
           currentUserId={state.currentUser?.id || ''}
           onSetRole={onSetRole}
+          onTransferManagerRole={onTransferManagerRole}
           onSendMessage={onSendMessage}
           inventory={state.inventory}
         />

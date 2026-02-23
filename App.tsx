@@ -134,10 +134,14 @@ const App: React.FC = () => {
         if (payload.eventType === 'INSERT') {
           setState(prev => ({ ...prev, users: [...prev.users, payload.new as User] }));
         } else if (payload.eventType === 'UPDATE') {
-          setState(prev => ({ 
-            ...prev, 
-            users: prev.users.map(u => u.id === payload.new.id ? payload.new as User : u) 
-          }));
+          setState(prev => {
+            const updatedUser = payload.new as User;
+            return {
+              ...prev, 
+              users: prev.users.map(u => u.id === updatedUser.id ? updatedUser : u),
+              currentUser: prev.currentUser?.id === updatedUser.id ? updatedUser : prev.currentUser
+            };
+          });
         }
       }).subscribe();
 
@@ -341,6 +345,23 @@ const App: React.FC = () => {
     await supabase.from('profiles').update({ role }).eq('id', userId);
   };
 
+  const transferManagerRole = async (newManagerId: string) => {
+    if (!state.currentUser || !state.currentUser.isFirstUser) return;
+    
+    try {
+      // 1. Update the new manager to be the primary manager
+      await supabase.from('profiles').update({ isFirstUser: true, role: 'MANAGER' }).eq('id', newManagerId);
+      
+      // 2. Update the current user to no longer be the primary manager (but keep them as a co-manager)
+      await supabase.from('profiles').update({ isFirstUser: false }).eq('id', state.currentUser.id);
+
+      toast.success("Rôle de gestionnaire principal transféré avec succès");
+    } catch (error) {
+      console.error("Erreur lors du transfert de rôle:", error);
+      toast.error("Erreur lors du transfert de rôle");
+    }
+  };
+
   const sendMessage = async (msg: Omit<Message, 'id' | 'timestamp' | 'isRead'>) => {
     const fullMsg = {
       ...msg,
@@ -440,6 +461,7 @@ const App: React.FC = () => {
           onUpdateItem={updateInventory}
           onDeleteItem={deleteItem}
           onSetRole={setRole}
+          onTransferManagerRole={transferManagerRole}
           onSendMessage={sendMessage}
           onMarkMessagesAsRead={markMessagesAsRead}
           onMarkDelivered={handleMarkDelivered}

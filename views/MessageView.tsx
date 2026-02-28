@@ -13,9 +13,34 @@ interface MessageViewProps {
 }
 
 const MessageView: React.FC<MessageViewProps> = ({ messages, users, currentUserId, onlineUserIds, onSendMessage, onMarkMessagesAsRead }) => {
-  const [selectedContactId, setSelectedContactId] = useState<string | null>(null);
+  const [selectedContactId, setSelectedContactId] = useState<string | null>(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('contact');
+  });
   const [inputText, setInputText] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handlePopState = (e: PopStateEvent) => {
+      if (e.state && e.state.contactId) {
+        setSelectedContactId(e.state.contactId);
+      } else {
+        setSelectedContactId(null);
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  const handleContactSelect = (id: string) => {
+    window.history.pushState({ tab: 'messages', contactId: id }, '', `?tab=messages&contact=${id}`);
+    setSelectedContactId(id);
+  };
+
+  const handleCloseChat = () => {
+    window.history.pushState({ tab: 'messages' }, '', `?tab=messages`);
+    setSelectedContactId(null);
+  };
 
   const currentUser = useMemo(() => users.find(u => u.id === currentUserId), [users, currentUserId]);
   const isManager = currentUser?.role === 'MANAGER';
@@ -149,7 +174,7 @@ const MessageView: React.FC<MessageViewProps> = ({ messages, users, currentUserI
           return (
             <button
               key={contact.id}
-              onClick={() => setSelectedContactId(contact.id)}
+              onClick={() => handleContactSelect(contact.id)}
               className={`flex items-center gap-3 p-3 rounded-2xl transition-all text-left relative ${
                 selectedContactId === contact.id ? 'bg-emerald-600 text-white shadow-md' : 'bg-white hover:bg-slate-100 border border-slate-100'
               }`}
@@ -214,7 +239,7 @@ const MessageView: React.FC<MessageViewProps> = ({ messages, users, currentUserI
             <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
               <div className="flex items-center gap-3">
                 <button 
-                  onClick={() => setSelectedContactId(null)} 
+                  onClick={handleCloseChat} 
                   className="md:hidden p-2 -ml-2 text-slate-400 hover:text-slate-600"
                 >
                   <ChevronLeft size={20} />

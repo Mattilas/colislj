@@ -17,13 +17,46 @@ const App: React.FC = () => {
     onlineUserIds: []
   });
   const [activeTab, setActiveTab] = useState<'inventory' | 'admin' | 'messages' | 'reservations'>(() => {
+    const params = new URLSearchParams(window.location.search);
+    const tabFromUrl = params.get('tab');
+    if (tabFromUrl && ['inventory', 'admin', 'messages', 'reservations'].includes(tabFromUrl)) {
+      return tabFromUrl as any;
+    }
     const saved = localStorage.getItem('ecocolis_activeTab');
     return (saved as 'inventory' | 'admin' | 'messages' | 'reservations') || 'inventory';
   });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!window.history.state?.tab) {
+      window.history.replaceState({ tab: activeTab }, '', `?tab=${activeTab}`);
+    }
+
+    const handlePopState = (e: PopStateEvent) => {
+      if (e.state && e.state.tab) {
+        setActiveTab(e.state.tab);
+      } else {
+        const params = new URLSearchParams(window.location.search);
+        const tabFromUrl = params.get('tab');
+        if (tabFromUrl && ['inventory', 'admin', 'messages', 'reservations'].includes(tabFromUrl)) {
+          setActiveTab(tabFromUrl as any);
+        }
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  useEffect(() => {
     localStorage.setItem('ecocolis_activeTab', activeTab);
+  }, [activeTab]);
+
+  const handleTabChange = useCallback((tab: 'inventory' | 'admin' | 'messages' | 'reservations') => {
+    if (tab !== activeTab) {
+      window.history.pushState({ tab }, '', `?tab=${tab}`);
+      setActiveTab(tab);
+    }
   }, [activeTab]);
 
   // Demander la permission pour les notifications natives
@@ -446,16 +479,16 @@ const App: React.FC = () => {
       </header>
 
       <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 z-40 px-6 py-2 flex justify-around md:relative md:bottom-auto md:bg-transparent md:border-none md:justify-center md:gap-4 md:pt-8 md:pb-4">
-        <NavButton active={activeTab === 'inventory'} onClick={() => setActiveTab('inventory')} icon={<Package size={20} />} label="Stocks" />
-        <NavButton active={activeTab === 'reservations'} onClick={() => setActiveTab('reservations')} icon={<ClipboardList size={20} />} label="Suivi" />
+        <NavButton active={activeTab === 'inventory'} onClick={() => handleTabChange('inventory')} icon={<Package size={20} />} label="Stocks" />
+        <NavButton active={activeTab === 'reservations'} onClick={() => handleTabChange('reservations')} icon={<ClipboardList size={20} />} label="Suivi" />
         <NavButton 
           active={activeTab === 'messages'} 
-          onClick={() => setActiveTab('messages')} 
+          onClick={() => handleTabChange('messages')} 
           icon={<MessageSquare size={20} />} 
           label="Messages" 
           count={state.messages.filter(m => m.toUserId === state.currentUser?.id && !m.isRead).length} 
         />
-        {isManager && <NavButton active={activeTab === 'admin'} onClick={() => setActiveTab('admin')} icon={<Users size={20} />} label="Équipe" />}
+        {isManager && <NavButton active={activeTab === 'admin'} onClick={() => handleTabChange('admin')} icon={<Users size={20} />} label="Équipe" />}
       </nav>
 
       <main className="max-w-4xl mx-auto w-full p-4 md:px-8 md:py-4">

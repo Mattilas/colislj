@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { InventoryItem } from '../types';
-import { Plus, Trash2, Edit3, CheckCircle, XCircle, PackageOpen, ChevronDown } from 'lucide-react';
+import { Plus, Trash2, Edit3, CheckCircle, XCircle, PackageOpen, ChevronDown, Search, Filter } from 'lucide-react';
 
 interface InventoryViewProps {
   inventory: InventoryItem[];
@@ -18,6 +18,8 @@ const InventoryView: React.FC<InventoryViewProps> = ({
 }) => {
   const [showForm, setShowForm] = useState(false);
   const [editingItem, setEditingItem] = useState<InventoryItem | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterCategory, setFilterCategory] = useState<string>('Toutes');
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -39,8 +41,23 @@ const InventoryView: React.FC<InventoryViewProps> = ({
     setEditingItem(null);
   };
 
+  const uniqueNames = Array.from(new Set(
+    inventory
+      .filter(item => !item.category.includes(' [LIVRÉ]'))
+      .map(item => item.name)
+  )).sort((a, b) => a.localeCompare(b));
+
   const activeInventory = inventory
     .filter(item => !item.category.includes(' [LIVRÉ]'))
+    .filter(item => {
+      const searchLower = searchQuery.toLowerCase();
+      const matchesSearch = 
+        item.name.toLowerCase().includes(searchLower) || 
+        item.description.toLowerCase().includes(searchLower) ||
+        item.category.toLowerCase().includes(searchLower);
+      const matchesCategory = filterCategory === 'Toutes' || item.name === filterCategory;
+      return matchesSearch && matchesCategory;
+    })
     .sort((a, b) => {
       // Priority groups:
       // 1. Available (reservedById === null && quantity > 0)
@@ -70,24 +87,53 @@ const InventoryView: React.FC<InventoryViewProps> = ({
     });
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-slate-900">Inventaire</h2>
-          <p className="text-slate-500 text-sm">Consultez et réservez des colis</p>
+    <div className="pb-6">
+      <div className="sticky top-16 z-30 bg-slate-50/90 backdrop-blur-md pt-4 pb-4 -mx-4 px-4 md:-mx-8 md:px-8 border-b border-slate-200/50">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h2 className="text-2xl font-bold text-slate-900">Inventaire</h2>
+            <p className="text-slate-500 text-sm">Consultez et réservez des colis</p>
+          </div>
+          {isManager && (
+            <button 
+              onClick={() => setShowForm(true)}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white p-3 rounded-2xl shadow-lg transition-transform active:scale-95"
+            >
+              <Plus size={20} />
+            </button>
+          )}
         </div>
-        {isManager && (
-          <button 
-            onClick={() => setShowForm(true)}
-            className="bg-emerald-600 hover:bg-emerald-700 text-white p-3 rounded-2xl shadow-lg transition-transform active:scale-95"
-          >
-            <Plus size={20} />
-          </button>
-        )}
+        
+        <div className="flex gap-3">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+            <input 
+              type="text" 
+              placeholder="Rechercher un article..." 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-sm shadow-sm"
+            />
+          </div>
+          <div className="relative w-1/3 min-w-[120px]">
+            <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+            <select 
+              value={filterCategory}
+              onChange={(e) => setFilterCategory(e.target.value)}
+              className="w-full pl-10 pr-8 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none appearance-none cursor-pointer text-sm shadow-sm"
+            >
+              <option value="Toutes">Toutes</option>
+              {uniqueNames.map(name => (
+                <option key={name} value={name}>{name}</option>
+              ))}
+            </select>
+            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={16} />
+          </div>
+        </div>
       </div>
 
       {showForm && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
           <form 
             onSubmit={handleSubmit}
             className="bg-white rounded-3xl p-6 w-full max-w-md shadow-2xl animate-in zoom-in duration-200"
@@ -111,6 +157,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                   <option value="Sec">Sec</option>
                   <option value="Frais">Frais</option>
                   <option value="Surgelé">Surgelé</option>
+                  <option value="Conserve">Conserve</option>
                   <option value="Hygiène">Hygiène</option>
                   <option value="Autre">Autre</option>
                 </select>
@@ -150,7 +197,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
         </div>
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6">
         {activeInventory.length === 0 ? (
           <div className="col-span-full py-12 flex flex-col items-center justify-center text-slate-400 opacity-50">
             <PackageOpen size={64} className="mb-4" />

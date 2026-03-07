@@ -455,9 +455,9 @@ const App: React.FC = () => {
   const isManager = state.currentUser.role === 'MANAGER';
 
   return (
-    <div className="min-h-screen bg-slate-50 pt-16 pb-20 md:pb-0">
+    <div className="min-h-screen bg-slate-50 pt-16 pb-20 md:pb-0 flex flex-col">
       <Toaster position="top-center" />
-      <header className="fixed top-0 left-0 right-0 bg-white border-b border-slate-200 z-30 px-4 h-16 flex items-center justify-between shadow-sm">
+      <header className="fixed top-0 left-0 right-0 bg-white border-b border-slate-200 z-50 px-4 h-16 flex items-center justify-between shadow-sm">
         <div className="flex items-center gap-2">
           <div className="p-2 bg-emerald-100 text-emerald-700 rounded-lg">
             <Package size={24} />
@@ -492,7 +492,7 @@ const App: React.FC = () => {
         {isManager && <NavButton active={activeTab === 'admin'} onClick={() => handleTabChange('admin')} icon={<Users size={20} />} label="Équipe" />}
       </nav>
 
-      <main className="max-w-4xl mx-auto w-full p-4 md:px-8 md:py-4">
+      <main className="max-w-4xl mx-auto w-full p-4 md:px-8 md:py-4 flex-1 flex flex-col">
         <Dashboard 
           activeTab={activeTab}
           state={state}

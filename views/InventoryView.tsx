@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { InventoryItem } from '../types';
-import { Plus, Trash2, Edit3, CheckCircle, XCircle, PackageOpen } from 'lucide-react';
+import { Plus, Trash2, Edit3, CheckCircle, XCircle, PackageOpen, ChevronDown } from 'lucide-react';
 
 interface InventoryViewProps {
   inventory: InventoryItem[];
@@ -101,13 +101,21 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                 required 
                 className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none" 
               />
-              <input 
-                name="category" 
-                defaultValue={editingItem?.category}
-                placeholder="Catégorie (Frais, Sec, etc.)" 
-                required 
-                className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none" 
-              />
+              <div className="relative">
+                <select 
+                  name="category" 
+                  defaultValue={editingItem?.category || "Sec"}
+                  required 
+                  className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none appearance-none cursor-pointer" 
+                >
+                  <option value="Sec">Sec</option>
+                  <option value="Frais">Frais</option>
+                  <option value="Surgelé">Surgelé</option>
+                  <option value="Hygiène">Hygiène</option>
+                  <option value="Autre">Autre</option>
+                </select>
+                <ChevronDown className="absolute right-3 top-3.5 text-slate-400 pointer-events-none" size={20} />
+              </div>
               <textarea 
                 name="description" 
                 defaultValue={editingItem?.description}

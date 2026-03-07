@@ -40,7 +40,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
   };
 
   const activeInventory = inventory
-    .filter(item => !item.category.endsWith(' [LIVRÉ]'))
+    .filter(item => !item.category.includes(' [LIVRÉ]'))
     .sort((a, b) => {
       // Priority groups:
       // 1. Available (reservedById === null && quantity > 0)

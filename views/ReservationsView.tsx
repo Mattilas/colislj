@@ -1,7 +1,7 @@
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { InventoryItem, User } from '../types';
-import { UserCircle, Package, ArrowRight, CheckCircle, Clock, Trash2, AlertTriangle } from 'lucide-react';
+import { UserCircle, Package, ArrowRight, CheckCircle, Clock, Trash2, AlertTriangle, BarChart3, X, Calendar } from 'lucide-react';
 
 interface ReservationsViewProps {
   inventory: InventoryItem[];
@@ -14,6 +14,7 @@ interface ReservationsViewProps {
 
 const ReservationsView: React.FC<ReservationsViewProps> = ({ inventory, users, currentUserId, isManager, onMarkDelivered, onClearDeliveryHistory }) => {
   const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const [showReport, setShowReport] = useState(false);
   const reservedItems = inventory.filter(item => item.reservedById !== null);
   
   const pendingItems = reservedItems.filter(item => !item.category.endsWith(' [LIVRÉ]'));
@@ -23,6 +24,33 @@ const ReservationsView: React.FC<ReservationsViewProps> = ({ inventory, users, c
     onClearDeliveryHistory();
     setShowClearConfirm(false);
   };
+
+  const reportData = useMemo(() => {
+    if (!isManager) return null;
+    
+    const report: Record<string, Record<string, number>> = {};
+    
+    deliveredItems.forEach(item => {
+      const match = item.category.match(/\[LIVRÉ\]\s*(.*)/);
+      const dateStr = match && match[1] ? match[1] : null;
+      const date = dateStr ? new Date(dateStr) : new Date();
+      
+      const monthYear = date.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+      const key = monthYear.charAt(0).toUpperCase() + monthYear.slice(1);
+      
+      if (!report[key]) {
+        report[key] = {};
+      }
+      
+      if (!report[key][item.name]) {
+        report[key][item.name] = 0;
+      }
+      
+      report[key][item.name] += item.quantity;
+    });
+    
+    return report;
+  }, [deliveredItems, isManager]);
 
   return (
     <div className="space-y-6">
@@ -109,19 +137,31 @@ const ReservationsView: React.FC<ReservationsViewProps> = ({ inventory, users, c
                     <CheckCircle size={16} /> Historique des livraisons
                   </h3>
                   {isManager && (
-                    <button
-                      onClick={() => setShowClearConfirm(true)}
-                      className="text-xs font-bold text-red-500 hover:text-red-600 bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5"
-                    >
-                      <Trash2 size={14} /> Nettoyer l'historique
-                    </button>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => setShowReport(true)}
+                        className="text-xs font-bold text-emerald-600 hover:text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5"
+                      >
+                        <BarChart3 size={14} /> Rapport
+                      </button>
+                      <button
+                        onClick={() => setShowClearConfirm(true)}
+                        className="text-xs font-bold text-red-500 hover:text-red-600 bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5"
+                      >
+                        <Trash2 size={14} /> Nettoyer
+                      </button>
+                    </div>
                   )}
                 </div>
                 <div className="grid grid-cols-1 gap-4 opacity-70">
                   {deliveredItems.map(item => {
                     const reserver = users.find(u => u.id === item.reservedById);
                     const isMine = item.reservedById === currentUserId;
-                    const displayCategory = item.category.replace(' [LIVRÉ]', '');
+                    const displayCategory = item.category.replace(/\[LIVRÉ\].*/, '').trim();
+                    
+                    const match = item.category.match(/\[LIVRÉ\]\s*(.*)/);
+                    const dateStr = match && match[1] ? match[1] : null;
+                    const date = dateStr ? new Date(dateStr).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : 'Date inconnue';
 
                     return (
                       <div 
@@ -129,7 +169,7 @@ const ReservationsView: React.FC<ReservationsViewProps> = ({ inventory, users, c
                         className="bg-slate-50 p-4 rounded-3xl border border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
                       >
                         <div className="flex items-center gap-4">
-                          <div className="p-3 rounded-2xl bg-slate-200 text-slate-400">
+                          <div className="p-3 rounded-2xl bg-slate-200 text-slate-400 flex flex-col items-center justify-center">
                             <CheckCircle size={24} />
                           </div>
                           <div>
@@ -137,6 +177,7 @@ const ReservationsView: React.FC<ReservationsViewProps> = ({ inventory, users, c
                             <div className="flex items-center gap-2">
                               <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">{displayCategory}</span>
                               <span className="text-[10px] font-bold text-slate-500 bg-slate-200 px-2 py-0.5 rounded-full">Qté: {item.quantity}</span>
+                              <span className="text-[10px] font-medium text-slate-400 ml-1 flex items-center gap-1"><Clock size={10}/> {date}</span>
                             </div>
                           </div>
                         </div>
@@ -194,6 +235,51 @@ const ReservationsView: React.FC<ReservationsViewProps> = ({ inventory, users, c
               >
                 Annuler
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showReport && reportData && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+          <div className="bg-white rounded-[32px] p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl animate-in zoom-in duration-200">
+            <div className="flex items-center justify-between mb-6 sticky top-0 bg-white pb-4 border-b border-slate-100">
+              <div className="flex items-center gap-3 text-emerald-600">
+                <div className="p-3 bg-emerald-50 rounded-2xl">
+                  <BarChart3 size={24} />
+                </div>
+                <h3 className="text-xl font-bold text-slate-900">Rapport des livraisons</h3>
+              </div>
+              <button 
+                onClick={() => setShowReport(false)}
+                className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-colors"
+              >
+                <X size={24} />
+              </button>
+            </div>
+            
+            <div className="space-y-8">
+              {Object.keys(reportData).length === 0 ? (
+                <p className="text-center text-slate-500 py-8">Aucune donnée disponible pour le rapport.</p>
+              ) : (
+                Object.entries(reportData).sort((a, b) => b[0].localeCompare(a[0])).map(([monthYear, items]) => (
+                  <div key={monthYear} className="bg-slate-50 rounded-2xl p-5 border border-slate-100">
+                    <h4 className="text-lg font-bold text-slate-800 mb-4 capitalize flex items-center gap-2">
+                      <Calendar size={18} className="text-emerald-500"/> {monthYear}
+                    </h4>
+                    <div className="space-y-2">
+                      {Object.entries(items).sort((a, b) => b[1] - a[1]).map(([itemName, quantity]) => (
+                        <div key={itemName} className="flex justify-between items-center p-3 bg-white rounded-xl border border-slate-100 shadow-sm">
+                          <span className="font-medium text-slate-700">{itemName}</span>
+                          <span className="font-bold text-emerald-600 bg-emerald-50 px-3 py-1 rounded-lg">
+                            {quantity} distribué{quantity > 1 ? 's' : ''}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </div>
         </div>

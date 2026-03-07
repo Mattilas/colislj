@@ -361,13 +361,14 @@ const App: React.FC = () => {
     const item = state.inventory.find(i => i.id === itemId);
     if (!item) return;
 
+    const dateStr = new Date().toISOString();
     await supabase.from('inventory')
-      .update({ category: `${item.category} [LIVRÉ]` })
+      .update({ category: `${item.category} [LIVRÉ] ${dateStr}` })
       .eq('id', itemId);
   };
 
   const handleClearDeliveryHistory = async () => {
-    const deliveredItems = state.inventory.filter(i => i.category.endsWith(' [LIVRÉ]'));
+    const deliveredItems = state.inventory.filter(i => i.category.includes(' [LIVRÉ]'));
     if (deliveredItems.length === 0) return;
 
     const ids = deliveredItems.map(i => i.id);

@@ -59,14 +59,55 @@ const App: React.FC = () => {
     }
   }, [activeTab]);
 
-  // Demander la permission pour les notifications natives
+  // Demander la permission pour les notifications natives et push
   useEffect(() => {
-    if (state.currentUser?.role === 'MANAGER' && 'Notification' in window) {
-      if (Notification.permission === 'default') {
-        Notification.requestPermission();
+    const setupPushNotifications = async () => {
+      if (!state.currentUser) return;
+      
+      if ('serviceWorker' in navigator && 'PushManager' in window) {
+        try {
+          const permission = await Notification.requestPermission();
+          if (permission === 'granted') {
+            // Wait for the service worker registered by vite-plugin-pwa
+            const registration = await navigator.serviceWorker.ready;
+
+            const urlBase64ToUint8Array = (base64String: string) => {
+              const padding = '='.repeat((4 - base64String.length % 4) % 4);
+              const base64 = (base64String + padding)
+                .replace(/\-/g, '+')
+                .replace(/_/g, '/');
+            
+              const rawData = window.atob(base64);
+              const outputArray = new Uint8Array(rawData.length);
+            
+              for (let i = 0; i < rawData.length; ++i) {
+                outputArray[i] = rawData.charCodeAt(i);
+              }
+              return outputArray;
+            };
+
+            const subscription = await registration.pushManager.subscribe({
+              userVisibleOnly: true,
+              applicationServerKey: urlBase64ToUint8Array('BO-IT27AqBrgn3MMhY9u_yPtECACxN1MUzFIOyuFufLrX8J4qOY9muW1AglvE5dhuIU5YCRtu7L0MnUlhrabuAU')
+            });
+
+            await fetch('/api/subscribe', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                userId: state.currentUser.id,
+                subscription
+              })
+            });
+          }
+        } catch (error) {
+          console.error('Error setting up push notifications:', error);
+        }
       }
-    }
-  }, [state.currentUser?.role]);
+    };
+
+    setupPushNotifications();
+  }, [state.currentUser?.id]);
 
   // 1. Initial Load
   useEffect(() => {
@@ -123,10 +164,6 @@ const App: React.FC = () => {
               const body = `${reserverName} a réservé : ${newItem.name}`;
               
               toast.success(body, { icon: '📦', duration: 5000 });
-              
-              if ('Notification' in window && Notification.permission === 'granted') {
-                new Notification(title, { body });
-              }
             }
 
             return { 
@@ -152,10 +189,6 @@ const App: React.FC = () => {
             const body = `${senderName} vous a envoyé un message.`;
             
             toast(body, { icon: '💬', duration: 4000 });
-            
-            if ('Notification' in window && Notification.permission === 'granted') {
-              new Notification(title, { body });
-            }
           }
           
           return { ...prev, messages: [newMsg, ...prev.messages] };
@@ -305,6 +338,7 @@ const App: React.FC = () => {
         await supabase.from('inventory')
           .update({ reservedById: state.currentUser.id })
           .eq('id', itemId);
+        await notifyManagers('Nouvelle réservation !', `${state.currentUser.pseudonym} a réservé : ${item.name}`, '/?tab=reservations');
       }
     } else {
       const remaining = item.quantity - quantity;
@@ -319,6 +353,7 @@ const App: React.FC = () => {
         await supabase.from('inventory')
           .update({ quantity: existingReservation.quantity + quantity })
           .eq('id', existingReservation.id);
+        await notifyManagers('Nouvelle réservation !', `${state.currentUser.pseudonym} a ajouté ${quantity} à sa réservation de : ${item.name}`, '/?tab=reservations');
       } else {
         const { id, ...itemWithoutId } = item;
         await supabase.from('inventory')
@@ -327,6 +362,7 @@ const App: React.FC = () => {
             quantity: quantity,
             reservedById: state.currentUser.id
           });
+        await notifyManagers('Nouvelle réservation !', `${state.currentUser.pseudonym} a réservé : ${item.name}`, '/?tab=reservations');
       }
     }
   };
@@ -403,6 +439,25 @@ const App: React.FC = () => {
     }
   };
 
+  const notifyUser = async (userId: string, title: string, body: string, url: string = '/') => {
+    try {
+      await fetch('/api/notify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, title, body, url })
+      });
+    } catch (error) {
+      console.error('Error sending push notification:', error);
+    }
+  };
+
+  const notifyManagers = async (title: string, body: string, url: string = '/') => {
+    const managers = state.users.filter(u => u.role === 'MANAGER' && u.id !== state.currentUser?.id);
+    for (const manager of managers) {
+      await notifyUser(manager.id, title, body, url);
+    }
+  };
+
   const sendMessage = async (msg: Omit<Message, 'id' | 'timestamp' | 'isRead'>) => {
     const fullMsg = {
       ...msg,
@@ -410,6 +465,10 @@ const App: React.FC = () => {
       isRead: false
     };
     await supabase.from('messages').insert(fullMsg);
+    
+    // Notify recipient
+    const sender = state.currentUser?.pseudonym || 'Quelqu\'un';
+    await notifyUser(msg.toUserId, `Nouveau message de ${sender}`, msg.content, '/?tab=messages');
   };
 
   const markMessagesAsRead = async (contactId: string) => {

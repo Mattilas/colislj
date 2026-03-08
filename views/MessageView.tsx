@@ -227,7 +227,7 @@ const MessageView: React.FC<MessageViewProps> = ({ messages, users, currentUserI
         </div>
       </div>
 
-      <div className="pt-[100px] h-[calc(100vh-6rem)] md:h-[700px] flex flex-col md:flex-row gap-6">
+      <div className="pt-[100px] h-[calc(100dvh-11rem)] md:h-[calc(100dvh-11.5rem)] flex flex-col md:flex-row gap-6">
         {/* Sidebar / Liste des contacts */}
         <div className={`${selectedContactId ? 'hidden md:flex' : 'flex'} flex-col w-full md:w-64 shrink-0`}>
           <div className="overflow-y-auto pr-2 h-full">

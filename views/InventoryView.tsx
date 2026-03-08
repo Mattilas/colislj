@@ -19,7 +19,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
   const [showForm, setShowForm] = useState(false);
   const [editingItem, setEditingItem] = useState<InventoryItem | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [filterCategory, setFilterCategory] = useState<string>('Toutes');
+  const [filterCategory, setFilterCategory] = useState<string>('Tous');
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -55,7 +55,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
         item.name.toLowerCase().includes(searchLower) || 
         item.description.toLowerCase().includes(searchLower) ||
         item.category.toLowerCase().includes(searchLower);
-      const matchesCategory = filterCategory === 'Toutes' || item.name === filterCategory;
+      const matchesCategory = filterCategory === 'Tous' || item.name === filterCategory;
       return matchesSearch && matchesCategory;
     })
     .sort((a, b) => {
@@ -122,7 +122,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
               onChange={(e) => setFilterCategory(e.target.value)}
               className="w-full pl-10 pr-8 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none appearance-none cursor-pointer text-sm shadow-sm"
             >
-              <option value="Toutes">Toutes</option>
+              <option value="Tous">Tous</option>
               {uniqueNames.map(name => (
                 <option key={name} value={name}>{name}</option>
               ))}
@@ -158,6 +158,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                   <option value="Frais">Frais</option>
                   <option value="Surgelé">Surgelé</option>
                   <option value="Conserve">Conserve</option>
+                  <option value="Liquide">Liquide</option>
                   <option value="Hygiène">Hygiène</option>
                   <option value="Autre">Autre</option>
                 </select>

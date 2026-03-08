@@ -38,15 +38,18 @@ const AdminView: React.FC<AdminViewProps> = ({ users, currentUserId, onSetRole, 
   const otherUsers = users.filter(u => u.id !== currentUserId);
 
   return (
-    <div className="space-y-8">
-      <div>
-        <h2 className="text-2xl font-bold text-slate-900">Équipe & Utilisateurs</h2>
-        <p className="text-slate-500 text-sm">Gérez les droits et communiquez avec les bénéficiaires</p>
+    <div>
+      <div className="fixed top-16 left-0 right-0 z-30 bg-slate-50/90 backdrop-blur-md border-b border-slate-200/50">
+        <div className="max-w-4xl mx-auto w-full px-4 md:px-8 pt-4 pb-4">
+          <h2 className="text-2xl font-bold text-slate-900">Équipe & Utilisateurs</h2>
+          <p className="text-slate-500 text-sm">Gérez les droits et communiquez avec les bénéficiaires</p>
+        </div>
       </div>
 
-      {messageForm && selectedUser && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
-          <form 
+      <div className="pt-[100px] space-y-8">
+        {messageForm && selectedUser && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
+            <form 
             onSubmit={handleSendMessage}
             className="bg-white rounded-3xl p-6 w-full max-w-md shadow-2xl animate-in slide-in-from-bottom-8 duration-300"
           >
@@ -196,6 +199,7 @@ const AdminView: React.FC<AdminViewProps> = ({ users, currentUserId, onSetRole, 
             );
           })}
         </div>
+      </div>
       </div>
     </div>
   );

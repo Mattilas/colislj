@@ -219,17 +219,21 @@ const MessageView: React.FC<MessageViewProps> = ({ messages, users, currentUserI
   );
 
   return (
-    <div className="h-[calc(100vh-12rem)] md:h-[600px] flex flex-col md:flex-row gap-6">
-      {/* Sidebar / Liste des contacts */}
-      <div className={`${selectedContactId ? 'hidden md:flex' : 'flex'} flex-col w-full md:w-64 shrink-0`}>
-        <div className="mb-4">
+    <>
+      <div className="fixed top-16 left-0 right-0 z-30 bg-slate-50/90 backdrop-blur-md border-b border-slate-200/50">
+        <div className="max-w-4xl mx-auto w-full px-4 md:px-8 pt-4 pb-4">
           <h2 className="text-2xl font-bold text-slate-900">Messages</h2>
           <p className="text-slate-500 text-sm">Discutez avec les autres membres</p>
         </div>
-        <div className="overflow-y-auto pr-2">
-          <ContactList />
-        </div>
       </div>
+
+      <div className="pt-[100px] h-[calc(100vh-6rem)] md:h-[700px] flex flex-col md:flex-row gap-6">
+        {/* Sidebar / Liste des contacts */}
+        <div className={`${selectedContactId ? 'hidden md:flex' : 'flex'} flex-col w-full md:w-64 shrink-0`}>
+          <div className="overflow-y-auto pr-2 h-full">
+            <ContactList />
+          </div>
+        </div>
 
       {/* Fenêtre de Chat */}
       <div className={`${!selectedContactId ? 'hidden md:flex' : 'flex'} flex-1 flex-col bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden`}>
@@ -342,7 +346,8 @@ const MessageView: React.FC<MessageViewProps> = ({ messages, users, currentUserI
           </div>
         )}
       </div>
-    </div>
+      </div>
+    </>
   );
 };
 

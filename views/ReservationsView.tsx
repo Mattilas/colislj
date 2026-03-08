@@ -54,12 +54,14 @@ const ReservationsView: React.FC<ReservationsViewProps> = ({ inventory, users, c
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold text-slate-900">Suivi des Réservations</h2>
-        <p className="text-slate-500 text-sm">Transparence solidaire : voyez quel article est attribué à quel pseudonyme.</p>
+      <div className="fixed top-16 left-0 right-0 z-30 bg-slate-50/90 backdrop-blur-md border-b border-slate-200/50">
+        <div className="max-w-4xl mx-auto w-full px-4 md:px-8 pt-4 pb-4">
+          <h2 className="text-2xl font-bold text-slate-900">Suivi des Réservations</h2>
+          <p className="text-slate-500 text-sm">Transparence solidaire : voyez quel article est attribué à quel pseudonyme.</p>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-4">
+      <div className="pt-[100px] grid grid-cols-1 gap-4">
         {reservedItems.length === 0 ? (
           <div className="py-20 flex flex-col items-center justify-center text-slate-400 bg-white rounded-3xl border border-dashed border-slate-200">
             <Package size={48} className="mb-4 opacity-20" />

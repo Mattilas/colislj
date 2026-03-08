@@ -88,51 +88,54 @@ const InventoryView: React.FC<InventoryViewProps> = ({
 
   return (
     <div className="pb-6">
-      <div className="sticky top-16 z-30 bg-slate-50/90 backdrop-blur-md pt-4 pb-4 -mx-4 px-4 md:-mx-8 md:px-8 border-b border-slate-200/50">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h2 className="text-2xl font-bold text-slate-900">Inventaire</h2>
-            <p className="text-slate-500 text-sm">Consultez et réservez des colis</p>
+      <div className="fixed top-16 left-0 right-0 z-30 bg-slate-50/90 backdrop-blur-md border-b border-slate-200/50">
+        <div className="max-w-4xl mx-auto w-full px-4 md:px-8 pt-4 pb-4">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="text-2xl font-bold text-slate-900">Inventaire</h2>
+              <p className="text-slate-500 text-sm">Consultez et réservez des colis</p>
+            </div>
+            {isManager && (
+              <button 
+                onClick={() => setShowForm(true)}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white p-3 rounded-2xl shadow-lg transition-transform active:scale-95"
+              >
+                <Plus size={20} />
+              </button>
+            )}
           </div>
-          {isManager && (
-            <button 
-              onClick={() => setShowForm(true)}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white p-3 rounded-2xl shadow-lg transition-transform active:scale-95"
-            >
-              <Plus size={20} />
-            </button>
-          )}
-        </div>
-        
-        <div className="flex gap-3">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-            <input 
-              type="text" 
-              placeholder="Rechercher un article..." 
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-sm shadow-sm"
-            />
-          </div>
-          <div className="relative w-1/3 min-w-[120px]">
-            <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-            <select 
-              value={filterCategory}
-              onChange={(e) => setFilterCategory(e.target.value)}
-              className="w-full pl-10 pr-8 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none appearance-none cursor-pointer text-sm shadow-sm"
-            >
-              <option value="Tous">Tous</option>
-              {uniqueNames.map(name => (
-                <option key={name} value={name}>{name}</option>
-              ))}
-            </select>
-            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={16} />
+          
+          <div className="flex gap-3">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+              <input 
+                type="text" 
+                placeholder="Rechercher un article..." 
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-sm shadow-sm"
+              />
+            </div>
+            <div className="relative w-1/3 min-w-[120px]">
+              <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+              <select 
+                value={filterCategory}
+                onChange={(e) => setFilterCategory(e.target.value)}
+                className="w-full pl-10 pr-8 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none appearance-none cursor-pointer text-sm shadow-sm"
+              >
+                <option value="Tous">Tous</option>
+                {uniqueNames.map(name => (
+                  <option key={name} value={name}>{name}</option>
+                ))}
+              </select>
+              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={16} />
+            </div>
           </div>
         </div>
       </div>
 
-      {showForm && (
+      <div className="pt-[140px]">
+        {showForm && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
           <form 
             onSubmit={handleSubmit}
@@ -216,6 +219,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
             onDelete={() => onDeleteItem(item.id)}
           />
         ))}
+      </div>
       </div>
     </div>
   );

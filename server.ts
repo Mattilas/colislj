@@ -5,6 +5,10 @@ import cors from 'cors';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { createClient } from '@supabase/supabase-js';
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -19,47 +23,56 @@ app.use(express.json());
 const publicVapidKey = process.env.VITE_VAPID_PUBLIC_KEY || 'BO-IT27AqBrgn3MMhY9u_yPtECACxN1MUzFIOyuFufLrX8J4qOY9muW1AglvE5dhuIU5YCRtu7L0MnUlhrabuAU';
 const privateVapidKey = process.env.VAPID_PRIVATE_KEY || 'aE6JOIyug1_PsQ6ToeKKg8FMRb-2E3yazSNNmJIR6Bg';
 
+const supabaseUrl = process.env.VITE_SUPABASE_URL || '';
+const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY || '';
+const supabase = createClient(supabaseUrl, supabaseKey);
+
 webpush.setVapidDetails(
   'mailto:test@example.com',
   publicVapidKey,
   privateVapidKey
 );
 
-// Simple file-based storage for subscriptions
-const SUBSCRIPTIONS_FILE = path.join(__dirname, 'subscriptions.json');
-
-const getSubscriptions = () => {
-  if (fs.existsSync(SUBSCRIPTIONS_FILE)) {
-    try {
-      return JSON.parse(fs.readFileSync(SUBSCRIPTIONS_FILE, 'utf-8'));
-    } catch (e) {
-      return {};
-    }
-  }
-  return {};
-};
-
-const saveSubscriptions = (subs: any) => {
-  fs.writeFileSync(SUBSCRIPTIONS_FILE, JSON.stringify(subs, null, 2));
-};
-
 // API Routes
 app.get('/api/vapid-public-key', (req, res) => {
   res.send(publicVapidKey);
 });
 
-app.post('/api/subscribe', (req, res) => {
+app.post('/api/subscribe', async (req, res) => {
   const { userId, subscription } = req.body;
   
   if (!userId || !subscription) {
     return res.status(400).json({ error: 'userId and subscription are required' });
   }
 
-  const subs = getSubscriptions();
-  subs[userId] = subscription;
-  saveSubscriptions(subs);
-
-  res.status(201).json({ success: true });
+  try {
+    // Delete old subscription for this user
+    await supabase
+      .from('messages')
+      .delete()
+      .eq('fromUserId', 'SYSTEM_SUBSCRIPTION')
+      .eq('toUserId', userId);
+    
+    // Insert new subscription
+    const { error } = await supabase.from('messages').insert({
+      id: `sub_${userId}_${Date.now()}`,
+      fromUserId: 'SYSTEM_SUBSCRIPTION',
+      toUserId: userId,
+      content: JSON.stringify(subscription),
+      timestamp: Date.now(),
+      isRead: true
+    });
+    
+    if (error) {
+      console.error('Supabase insert error:', error);
+      return res.status(500).json({ error: error.message });
+    }
+    
+    res.status(201).json({ success: true });
+  } catch (error: any) {
+    console.error('Error saving subscription:', error);
+    res.status(500).json({ error: 'Failed to save subscription' });
+  }
 });
 
 app.post('/api/notify', async (req, res) => {
@@ -69,29 +82,47 @@ app.post('/api/notify', async (req, res) => {
     return res.status(400).json({ error: 'userId and title are required' });
   }
 
-  const subs = getSubscriptions();
-  const subscription = subs[userId];
-
-  if (!subscription) {
-    return res.status(404).json({ error: 'User not subscribed' });
-  }
-
-  const payload = JSON.stringify({
-    title,
-    body: body || '',
-    url: url || '/'
-  });
-
   try {
+    // Get subscription from messages table
+    const { data, error } = await supabase
+      .from('messages')
+      .select('content')
+      .eq('fromUserId', 'SYSTEM_SUBSCRIPTION')
+      .eq('toUserId', userId)
+      .order('timestamp', { ascending: false })
+      .limit(1);
+
+    if (error) {
+      console.error('Supabase query error:', error);
+      return res.status(500).json({ error: error.message });
+    }
+
+    if (!data || data.length === 0) {
+      return res.status(404).json({ error: 'User not subscribed' });
+    }
+
+    const subscription = JSON.parse(data[0].content);
+
+    const payload = JSON.stringify({
+      title,
+      body: body || '',
+      url: url || '/'
+    });
+
     await webpush.sendNotification(subscription, payload);
     res.status(200).json({ success: true });
   } catch (error: any) {
     console.error('Error sending notification:', error);
+    
     if (error.statusCode === 410 || error.statusCode === 404) {
       // Subscription has expired or is no longer valid
-      delete subs[userId];
-      saveSubscriptions(subs);
+      await supabase
+        .from('messages')
+        .delete()
+        .eq('fromUserId', 'SYSTEM_SUBSCRIPTION')
+        .eq('toUserId', userId);
     }
+    
     res.status(500).json({ error: 'Failed to send notification' });
   }
 });

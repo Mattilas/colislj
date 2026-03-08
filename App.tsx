@@ -123,12 +123,13 @@ const App: React.FC = () => {
         const savedUserId = localStorage.getItem('ecocolis_user_id');
         const users = usersRes.data || [];
         const currentUser = savedUserId ? users.find(u => u.id === savedUserId) || null : null;
+        const validMessages = (msgRes.data || []).filter(m => m.fromUserId !== 'SYSTEM_SUBSCRIPTION');
 
         setState(prev => ({
           ...prev,
           inventory: invRes.data || [],
           users: users,
-          messages: msgRes.data || [],
+          messages: validMessages,
           currentUser: currentUser
         }));
       } catch (err) {
@@ -180,6 +181,7 @@ const App: React.FC = () => {
       .on('postgres_changes' as any, { event: 'INSERT', schema: 'public', table: 'messages' }, (payload: any) => {
         setState(prev => {
           const newMsg = payload.new as Message;
+          if (newMsg.fromUserId === 'SYSTEM_SUBSCRIPTION') return prev;
           
           // Notification si le message est pour l'utilisateur actuel
           if (prev.currentUser && newMsg.toUserId === prev.currentUser.id) {

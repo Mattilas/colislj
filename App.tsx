@@ -516,7 +516,7 @@ const App: React.FC = () => {
   const isManager = state.currentUser.role === 'MANAGER';
 
   return (
-    <div className="min-h-screen bg-slate-50 pt-16 pb-20 md:pb-0 flex flex-col">
+    <div className="min-h-screen bg-slate-50 pt-16 pb-20 flex flex-col">
       <Toaster position="top-center" />
       <header className="fixed top-0 left-0 right-0 bg-white border-b border-slate-200 z-50 px-4 h-16 flex items-center justify-between shadow-sm">
         <div className="flex items-center gap-2">
@@ -540,7 +540,7 @@ const App: React.FC = () => {
         </div>
       </header>
 
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 z-40 px-6 py-2 flex justify-around md:relative md:bottom-auto md:bg-transparent md:border-none md:justify-center md:gap-4 md:pt-8 md:pb-4">
+      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 z-40 px-6 py-2 flex justify-around md:justify-center md:gap-8">
         <NavButton active={activeTab === 'inventory'} onClick={() => handleTabChange('inventory')} icon={<Package size={20} />} label="Stocks" />
         <NavButton active={activeTab === 'reservations'} onClick={() => handleTabChange('reservations')} icon={<ClipboardList size={20} />} label="Suivi" />
         <NavButton 
@@ -583,7 +583,7 @@ interface NavButtonProps {
 }
 
 const NavButton: React.FC<NavButtonProps> = ({ active, onClick, icon, label, count }) => (
-  <button onClick={onClick} className={`flex flex-col md:flex-row items-center gap-1 md:gap-2 px-4 py-2 rounded-xl transition-all ${active ? 'text-emerald-600 bg-emerald-50 md:bg-white md:shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}>
+  <button onClick={onClick} className={`flex flex-col items-center gap-1 px-4 py-2 rounded-xl transition-all ${active ? 'text-emerald-600 bg-emerald-50' : 'text-slate-400 hover:text-slate-600'}`}>
     <div className="relative">
       {icon}
       {count && count > 0 ? <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center font-bold">{count}</span> : null}

@@ -3,6 +3,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { AppState, User, InventoryItem, Message, Role } from './types';
 import { generatePseudonym } from './utils/storage';
 import { supabase } from './lib/supabase';
+import { requestForToken, onMessageListener } from './lib/firebase';
 import Login from './views/Login';
 import Dashboard from './views/Dashboard';
 import { Package, Users, MessageSquare, LogOut, ShieldCheck, ClipboardList, Loader2 } from 'lucide-react';
@@ -64,41 +65,22 @@ const App: React.FC = () => {
     const setupPushNotifications = async () => {
       if (!state.currentUser) return;
       
-      if ('serviceWorker' in navigator && 'PushManager' in window) {
+      if ('serviceWorker' in navigator) {
         try {
           const permission = await Notification.requestPermission();
           if (permission === 'granted') {
-            // Wait for the service worker registered by vite-plugin-pwa
             const registration = await navigator.serviceWorker.ready;
-
-            const urlBase64ToUint8Array = (base64String: string) => {
-              const padding = '='.repeat((4 - base64String.length % 4) % 4);
-              const base64 = (base64String + padding)
-                .replace(/\-/g, '+')
-                .replace(/_/g, '/');
-            
-              const rawData = window.atob(base64);
-              const outputArray = new Uint8Array(rawData.length);
-            
-              for (let i = 0; i < rawData.length; ++i) {
-                outputArray[i] = rawData.charCodeAt(i);
-              }
-              return outputArray;
-            };
-
-            const subscription = await registration.pushManager.subscribe({
-              userVisibleOnly: true,
-              applicationServerKey: urlBase64ToUint8Array('BO-IT27AqBrgn3MMhY9u_yPtECACxN1MUzFIOyuFufLrX8J4qOY9muW1AglvE5dhuIU5YCRtu7L0MnUlhrabuAU')
-            });
-
-            await fetch('/api/subscribe', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                userId: state.currentUser.id,
-                subscription
-              })
-            });
+            const token = await requestForToken(registration);
+            if (token) {
+              await fetch('/api/subscribe', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  userId: state.currentUser.id,
+                  token
+                })
+              });
+            }
           }
         } catch (error) {
           console.error('Error setting up push notifications:', error);
@@ -108,6 +90,19 @@ const App: React.FC = () => {
 
     setupPushNotifications();
   }, [state.currentUser?.id]);
+
+  // Listen for foreground messages
+  useEffect(() => {
+    onMessageListener().then((payload: any) => {
+      if (payload && payload.notification) {
+        toast(payload.notification.body, { 
+          icon: '💬', 
+          duration: 4000,
+          position: 'top-center'
+        });
+      }
+    }).catch((err: any) => console.log('failed: ', err));
+  });
 
   // 1. Initial Load
   useEffect(() => {

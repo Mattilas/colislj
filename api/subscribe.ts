@@ -8,10 +8,10 @@ export default async function handler(req: any, res: any) {
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
 
-  const { userId, subscription } = req.body;
+  const { userId, token } = req.body;
   
-  if (!userId || !subscription) {
-    return res.status(400).json({ error: 'userId and subscription are required' });
+  if (!userId || !token) {
+    return res.status(400).json({ error: 'userId and token are required' });
   }
 
   if (!supabaseUrl || !supabaseKey) {
@@ -33,7 +33,7 @@ export default async function handler(req: any, res: any) {
       id: `sub_${userId}_${Date.now()}`,
       fromUserId: 'SYSTEM_SUBSCRIPTION',
       toUserId: userId,
-      content: JSON.stringify(subscription),
+      content: token, // Store the FCM token directly as a string
       timestamp: Date.now(),
       isRead: true
     });

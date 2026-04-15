@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { InventoryItem, User } from '../types';
-import { UserCircle, Package, ArrowRight, CheckCircle, Clock, Trash2, AlertTriangle, BarChart3, X, Calendar } from 'lucide-react';
+import { UserCircle, Package, ArrowRight, CheckCircle, Clock, Trash2, AlertTriangle, BarChart3, X, Calendar, Download } from 'lucide-react';
 
 interface ReservationsViewProps {
   inventory: InventoryItem[];
@@ -51,6 +51,34 @@ const ReservationsView: React.FC<ReservationsViewProps> = ({ inventory, users, c
     
     return report;
   }, [deliveredItems, isManager]);
+
+  const handleExportCSV = () => {
+    if (!reportData) return;
+
+    const headers = ['Mois', 'Article', 'Nombre'];
+    const rows: string[] = [];
+    
+    rows.push(headers.join(';'));
+    
+    Object.entries(reportData).sort((a, b) => b[0].localeCompare(a[0])).forEach(([monthYear, items]) => {
+      Object.entries(items).sort((a, b) => b[1] - a[1]).forEach(([itemName, quantity]) => {
+        const safeItemName = `"${itemName.replace(/"/g, '""')}"`;
+        rows.push(`"${monthYear}";${safeItemName};${quantity}`);
+      });
+    });
+    
+    const csvContent = rows.join('\n');
+    
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `rapport_livraisons_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   return (
     <div className="space-y-6">
@@ -264,19 +292,29 @@ const ReservationsView: React.FC<ReservationsViewProps> = ({ inventory, users, c
       {showReport && reportData && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
           <div className="bg-white rounded-[32px] p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl animate-in zoom-in duration-200">
-            <div className="flex items-center justify-between mb-6 sticky top-0 bg-white pb-4 border-b border-slate-100">
-              <div className="flex items-center gap-3 text-emerald-600">
-                <div className="p-3 bg-emerald-50 rounded-2xl">
-                  <BarChart3 size={24} />
+            <div className="mb-6 sticky top-0 bg-white pb-4 border-b border-slate-100">
+              <div className="flex items-start justify-between">
+                <div className="flex flex-col gap-3">
+                  <div className="flex items-center gap-3 text-emerald-600">
+                    <div className="p-3 bg-emerald-50 rounded-2xl">
+                      <BarChart3 size={24} />
+                    </div>
+                    <h3 className="text-xl font-bold text-slate-900">Rapport des livraisons</h3>
+                  </div>
+                  <button 
+                    onClick={handleExportCSV}
+                    className="w-fit p-2 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 rounded-xl transition-colors flex items-center gap-2 text-sm font-bold px-4 border border-emerald-100"
+                  >
+                    <Download size={16} /> Exporter CSV
+                  </button>
                 </div>
-                <h3 className="text-xl font-bold text-slate-900">Rapport des livraisons</h3>
+                <button 
+                  onClick={() => setShowReport(false)}
+                  className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-colors"
+                >
+                  <X size={24} />
+                </button>
               </div>
-              <button 
-                onClick={() => setShowReport(false)}
-                className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-colors"
-              >
-                <X size={24} />
-              </button>
             </div>
             
             <div className="space-y-8">

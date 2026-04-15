@@ -13,7 +13,6 @@ export default defineConfig({
       registerType: 'autoUpdate',
       devOptions: {
         enabled: true,
-        type: 'module',
       },
       includeAssets: ['icon.svg'],
       manifest: {

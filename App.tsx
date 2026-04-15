@@ -3,7 +3,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { AppState, User, InventoryItem, Message, Role } from './types';
 import { generatePseudonym } from './utils/storage';
 import { supabase } from './lib/supabase';
-import { requestForToken, onMessageListener } from './lib/firebase';
+import { requestForToken, onMessage, messaging } from './lib/firebase';
 import Login from './views/Login';
 import Dashboard from './views/Dashboard';
 import { Package, Users, MessageSquare, LogOut, ShieldCheck, ClipboardList, Loader2 } from 'lucide-react';
@@ -93,16 +93,20 @@ const App: React.FC = () => {
 
   // Listen for foreground messages
   useEffect(() => {
-    onMessageListener().then((payload: any) => {
-      if (payload && payload.notification) {
-        toast(payload.notification.body, { 
-          icon: '💬', 
+    if (!messaging) return;
+    
+    const unsubscribe = onMessage(messaging, (payload) => {
+      if (payload?.notification?.body) {
+        toast(payload.notification.body, {
+          icon: '💬',
           duration: 4000,
           position: 'top-center'
         });
       }
-    }).catch((err: any) => console.log('failed: ', err));
-  });
+    });
+    
+    return () => unsubscribe();
+  }, []);
 
   // 1. Initial Load
   useEffect(() => {

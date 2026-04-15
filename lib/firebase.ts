@@ -35,10 +35,4 @@ export const requestForToken = async (registration?: ServiceWorkerRegistration) 
   }
 };
 
-export const onMessageListener = () =>
-  new Promise((resolve) => {
-    if (!messaging) return;
-    onMessage(messaging, (payload) => {
-      resolve(payload);
-    });
-  });
+export { onMessage };

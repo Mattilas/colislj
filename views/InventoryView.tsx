@@ -43,12 +43,12 @@ const InventoryView: React.FC<InventoryViewProps> = ({
 
   const uniqueNames = Array.from(new Set(
     inventory
-      .filter(item => !item.category.includes(' [LIVRÉ]'))
+      .filter(item => !item.category.includes('[LIVRÉ]'))
       .map(item => item.name)
   )).sort((a, b) => a.localeCompare(b));
 
   const activeInventory = inventory
-    .filter(item => !item.category.includes(' [LIVRÉ]'))
+    .filter(item => !item.category.includes('[LIVRÉ]'))
     .filter(item => {
       const searchLower = searchQuery.toLowerCase();
       const matchesSearch = 

@@ -325,7 +325,10 @@ const App: React.FC = () => {
       if (existingReservation && existingReservation.id !== itemId) {
         // Add to existing reservation and delete the original item
         await supabase.from('inventory')
-          .update({ quantity: existingReservation.quantity + item.quantity })
+          .update({ 
+            quantity: existingReservation.quantity + item.quantity,
+            reservedAt: new Date().toISOString()
+          })
           .eq('id', existingReservation.id);
         await supabase.from('inventory')
           .delete()
@@ -333,7 +336,10 @@ const App: React.FC = () => {
       } else {
         // Just mark the original item as reserved
         await supabase.from('inventory')
-          .update({ reservedById: state.currentUser.id })
+          .update({ 
+            reservedById: state.currentUser.id,
+            reservedAt: new Date().toISOString()
+          })
           .eq('id', itemId);
         await notifyManagers('Nouvelle réservation !', `${state.currentUser.pseudonym} a réservé : ${item.name}`, '/?tab=reservations');
       }
@@ -348,7 +354,10 @@ const App: React.FC = () => {
       // 2. Update existing reservation or create new one
       if (existingReservation) {
         await supabase.from('inventory')
-          .update({ quantity: existingReservation.quantity + quantity })
+          .update({ 
+            quantity: existingReservation.quantity + quantity,
+            reservedAt: new Date().toISOString()
+          })
           .eq('id', existingReservation.id);
         await notifyManagers('Nouvelle réservation !', `${state.currentUser.pseudonym} a ajouté ${quantity} à sa réservation de : ${item.name}`, '/?tab=reservations');
       } else {
@@ -357,7 +366,8 @@ const App: React.FC = () => {
           .insert({
             ...itemWithoutId,
             quantity: quantity,
-            reservedById: state.currentUser.id
+            reservedById: state.currentUser.id,
+            reservedAt: new Date().toISOString()
           });
         await notifyManagers('Nouvelle réservation !', `${state.currentUser.pseudonym} a réservé : ${item.name}`, '/?tab=reservations');
       }
@@ -385,14 +395,14 @@ const App: React.FC = () => {
         .eq('id', itemId);
     } else {
       await supabase.from('inventory')
-        .update({ reservedById: null })
+        .update({ reservedById: null, reservedAt: null })
         .eq('id', itemId);
     }
   };
 
   const handleMarkDelivered = async (itemId: string) => {
     const item = state.inventory.find(i => i.id === itemId);
-    if (!item) return;
+    if (!item || item.category.includes('[LIVRÉ]')) return;
 
     const dateStr = new Date().toISOString();
     await supabase.from('inventory')
@@ -401,7 +411,7 @@ const App: React.FC = () => {
   };
 
   const handleClearDeliveryHistory = async () => {
-    const deliveredItems = state.inventory.filter(i => i.category.includes(' [LIVRÉ]'));
+    const deliveredItems = state.inventory.filter(i => i.category.includes('[LIVRÉ]'));
     if (deliveredItems.length === 0) return;
 
     const ids = deliveredItems.map(i => i.id);

@@ -16,6 +16,7 @@ export interface InventoryItem {
   description: string;
   quantity: number;
   reservedById: string | null; // null if available
+  reservedAt?: string | null;
   isDelivered?: boolean;
 }
 

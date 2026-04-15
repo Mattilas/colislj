@@ -17,8 +17,8 @@ const ReservationsView: React.FC<ReservationsViewProps> = ({ inventory, users, c
   const [showReport, setShowReport] = useState(false);
   const reservedItems = inventory.filter(item => item.reservedById !== null);
   
-  const pendingItems = reservedItems.filter(item => !item.category.endsWith(' [LIVRÉ]'));
-  const deliveredItems = reservedItems.filter(item => item.category.endsWith(' [LIVRÉ]'));
+  const pendingItems = reservedItems.filter(item => !item.category.includes('[LIVRÉ]'));
+  const deliveredItems = reservedItems.filter(item => item.category.includes('[LIVRÉ]'));
 
   const handleClearHistory = () => {
     onClearDeliveryHistory();
@@ -31,7 +31,7 @@ const ReservationsView: React.FC<ReservationsViewProps> = ({ inventory, users, c
     const report: Record<string, Record<string, number>> = {};
     
     deliveredItems.forEach(item => {
-      const match = item.category.match(/\[LIVRÉ\]\s*(.*)/);
+      const match = item.category.match(/\[LIVRÉ\]\s*([^\s\[]+)/);
       const dateStr = match && match[1] ? match[1] : null;
       const date = dateStr ? new Date(dateStr) : new Date();
       
@@ -78,7 +78,10 @@ const ReservationsView: React.FC<ReservationsViewProps> = ({ inventory, users, c
                   {pendingItems.map(item => {
                     const reserver = users.find(u => u.id === item.reservedById);
                     const isMine = item.reservedById === currentUserId;
-                    const displayCategory = item.category.replace(' [LIVRÉ]', '');
+                    const displayCategory = item.category.split(' [LIVRÉ]')[0];
+                    const reservationDate = item.reservedAt 
+                      ? new Date(item.reservedAt).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) 
+                      : null;
 
                     return (
                       <div 
@@ -91,9 +94,14 @@ const ReservationsView: React.FC<ReservationsViewProps> = ({ inventory, users, c
                           </div>
                           <div>
                             <h3 className="font-bold text-slate-800">{item.name}</h3>
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 flex-wrap">
                               <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">{displayCategory}</span>
                               <span className="text-[10px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">Qté: {item.quantity}</span>
+                              {reservationDate && (
+                                <span className="text-[10px] font-medium text-slate-400 flex items-center gap-1">
+                                  <Clock size={10}/> {reservationDate}
+                                </span>
+                              )}
                             </div>
                           </div>
                         </div>
@@ -161,9 +169,13 @@ const ReservationsView: React.FC<ReservationsViewProps> = ({ inventory, users, c
                     const isMine = item.reservedById === currentUserId;
                     const displayCategory = item.category.replace(/\[LIVRÉ\].*/, '').trim();
                     
-                    const match = item.category.match(/\[LIVRÉ\]\s*(.*)/);
+                    const match = item.category.match(/\[LIVRÉ\]\s*([^\s\[]+)/);
                     const dateStr = match && match[1] ? match[1] : null;
                     const date = dateStr ? new Date(dateStr).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : 'Date inconnue';
+                    
+                    const reservationDate = item.reservedAt 
+                      ? new Date(item.reservedAt).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) 
+                      : null;
 
                     return (
                       <div 
@@ -176,10 +188,17 @@ const ReservationsView: React.FC<ReservationsViewProps> = ({ inventory, users, c
                           </div>
                           <div>
                             <h3 className="font-bold text-slate-600 line-through">{item.name}</h3>
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 flex-wrap">
                               <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">{displayCategory}</span>
                               <span className="text-[10px] font-bold text-slate-500 bg-slate-200 px-2 py-0.5 rounded-full">Qté: {item.quantity}</span>
-                              <span className="text-[10px] font-medium text-slate-400 ml-1 flex items-center gap-1"><Clock size={10}/> {date}</span>
+                              {reservationDate && (
+                                <span className="text-[10px] font-medium text-slate-400 flex items-center gap-1" title="Date de réservation">
+                                  <Calendar size={10}/> {reservationDate}
+                                </span>
+                              )}
+                              <span className="text-[10px] font-medium text-slate-400 flex items-center gap-1" title="Date de livraison">
+                                <Clock size={10}/> {date}
+                              </span>
                             </div>
                           </div>
                         </div>

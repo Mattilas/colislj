@@ -97,11 +97,23 @@ const App: React.FC = () => {
     
     const unsubscribe = onMessage(messaging, (payload) => {
       if (payload?.notification?.body) {
+        // Show in-app toast
         toast(payload.notification.body, {
           icon: '💬',
           duration: 4000,
           position: 'top-center'
         });
+        
+        // Also trigger native Chrome notification if permission is granted
+        if (Notification.permission === 'granted' && 'serviceWorker' in navigator) {
+          navigator.serviceWorker.ready.then(registration => {
+            registration.showNotification(payload.notification!.title || 'EcoColis', {
+              body: payload.notification!.body,
+              icon: '/icon.svg',
+              data: payload.data
+            });
+          });
+        }
       }
     });
     
